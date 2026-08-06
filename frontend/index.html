@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- App Title -->
+  <title>skillz</title>
+
+  <!-- SEO Description -->
+  <meta name="description" content="skillz - Skills Assessment Platform" />
+
+
+  <!-- Open Graph (for sharing links) -->
+  <meta property="og:title" content="skillz" />
+  <meta property="og:description" content="Online skills assessment platform" />
+  <meta property="og:type" content="website" />
+
+  <!-- Remove Lovable image or replace with your logo later -->
+  <!-- <meta property="og:image" content="/your-logo.png" /> -->
+
+  <!-- Twitter Preview -->
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <script>
+    (function() {
+      try {
+        var theme = localStorage.getItem('theme') || 'light';
+        var root = document.documentElement;
+        if (theme === 'system') {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        root.classList.add(theme);
+        root.setAttribute('toggle-theme', theme);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>
