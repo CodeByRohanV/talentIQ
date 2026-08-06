@@ -7,7 +7,7 @@ variables:
   APP_PATH: "/home/ubuntu/xeskillz_test"
   DEPLOY_BRANCH: "main"
   FRONTEND_CONTAINER: "xeskillz-frontend"
-  WEB_ROOT: "/var/www/html"
+  WEB_ROOT: "/home/ubuntu/xeskillz_test/frontend/dist"
   RUNNER_TAG: "docker"
   COMPOSE_PROJECT_NAME: "xeskillz_test"
   VITE_API_URL: "/api/"
