@@ -150,7 +150,11 @@ export const login = async (req, res, next) => {
 
 export const getMe = async (req, res, next) => {
     try {
-        let user = await User.findUserById(req.auth.userId);
+        let user = null;
+        const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.auth.userId);
+        if (isUUID) {
+            user = await User.findUserById(req.auth.userId);
+        }
         let freshRoles = req.auth.roles;
         let freshPermissions = req.auth.permissions;
 
@@ -187,25 +191,26 @@ export const getMe = async (req, res, next) => {
             );
 
             // Create the user with a random password (they will always log in via SSO)
+            // Let Postgres generate the UUID for id automatically.
             const randomPassword = await hashPassword(Math.random().toString(36).slice(-12));
 
-            await query(
-                `INSERT INTO users (id, email, password_hash, full_name, employee_id, must_change_password, is_verified)
-                 VALUES ($1, $2, $3, $4, $5, false, true)
-                 ON CONFLICT (id) DO NOTHING`,
-                [userId, realEmail, randomPassword, realName, userId]
+            const insertRes = await query(
+                `INSERT INTO users (email, password_hash, full_name, employee_id, must_change_password, is_verified)
+                 VALUES ($1, $2, $3, $4, false, true)
+                 ON CONFLICT (email) DO NOTHING
+                 RETURNING id`,
+                [realEmail, randomPassword, realName, userId]
             );
-
-            // Fix existing stale SSO users: update email/name if they were set to the fake @sso.local
-            // placeholder or if the JWT now provides better info than what was stored.
-            if (req.auth.ssoEmail || req.auth.ssoName) {
-                await query(
-                    `UPDATE users
-                     SET email     = CASE WHEN email LIKE '%@sso.local' OR email = $2 THEN $2 ELSE email END,
-                         full_name = CASE WHEN full_name = $3 OR full_name = employee_id OR full_name LIKE '%@sso.local' THEN $4 ELSE full_name END
-                     WHERE id = $1`,
-                    [userId, realEmail, employeeId, realName]
-                );
+            
+            let newUserId = userId;
+            if (insertRes.rows.length > 0) {
+                newUserId = insertRes.rows[0].id;
+            } else {
+                // If it conflicted but didn't return, fetch the existing UUID
+                const existRes = await query(`SELECT id FROM users WHERE email = $1 OR employee_id = $2`, [realEmail, userId]);
+                if (existRes.rows.length > 0) {
+                    newUserId = existRes.rows[0].id;
+                }
             }
 
             // Assign SUPER_ADMIN role
@@ -216,15 +221,15 @@ export const getMe = async (req, res, next) => {
             if (roleRes.rows.length > 0) {
                 await query(
                     `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-                    [userId, roleRes.rows[0].id]
+                    [newUserId, roleRes.rows[0].id]
                 );
             }
 
-            console.log(`[SSO] Auto-provisioned/refreshed user from JWT: ${userId} → ${realEmail} (${realName})`);
-            user = await User.findUserById(userId);
+            console.log(`[SSO] Auto-provisioned/refreshed user from JWT: ${newUserId} → ${realEmail} (${realName})`);
+            user = await User.findUserById(newUserId);
 
             // Re-fetch fresh roles and permissions after provisioning
-            const fresh = await permissionService.getUserRolesAndPermissions(userId, tenantId);
+            const fresh = await permissionService.getUserRolesAndPermissions(newUserId, tenantId);
             freshRoles = fresh.roles;
             freshPermissions = fresh.permissions;
         } else if (user && (user.email?.endsWith('@sso.local') || !user.full_name || user.full_name === user.employee_id || (req.auth.ssoEmail && req.auth.ssoEmail !== user.email))) {

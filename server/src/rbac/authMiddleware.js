@@ -62,8 +62,19 @@ export const requireAuth = async (req, res, next) => {
                 dbUserId = existingUserRes.rows[0].id;
             }
         }
+        
+        // Helper function to check if string is a valid UUID
+        const isUUID = (str) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+        
         if (!dbUserId && userId) {
-            const existingUserRes = await query('SELECT id FROM users WHERE id = $1 OR employee_id = $2', [userId, userId]);
+            let existingUserRes;
+            if (isUUID(userId)) {
+                // It's a valid UUID, safe to query against id column
+                existingUserRes = await query('SELECT id FROM users WHERE id = $1 OR employee_id = $2', [userId, userId]);
+            } else {
+                // It's a string like 'apex0001_AP001', querying UUID id column will crash Postgres. Check employee_id only.
+                existingUserRes = await query('SELECT id FROM users WHERE employee_id = $1', [userId]);
+            }
             if (existingUserRes.rows.length > 0) {
                 dbUserId = existingUserRes.rows[0].id;
             }
