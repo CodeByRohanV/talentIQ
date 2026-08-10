@@ -30,10 +30,10 @@ export default function Auth() {
     const tenantUrl = import.meta.env.VITE_TENANT_URL;
     if (hostname !== 'localhost' && !hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
       const protocol = window.location.protocol;
-      const targetHost = hostname.replace(/skillztest|skillz|talentiq/gi, 'apps');
+      const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace');
       targetUrl = `${protocol}//${targetHost}/Home`;
     } else {
-      targetUrl = tenantUrl ? `${tenantUrl}/Home` : 'https://apps.scaloz.com/Home';
+      targetUrl = tenantUrl ? `${tenantUrl}/Home` : 'https://workspacetest.scaloz.com/Home';
     }
 
     window.location.href = targetUrl;

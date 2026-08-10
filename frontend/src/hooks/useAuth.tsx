@@ -112,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (tenantUrl) {
             window.location.href = `${tenantUrl}/Home`;
           } else {
-            const targetHost = hostname.replace(/skillztest|skillz|talentiq/gi, 'apps');
+            const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace');
             window.location.href = `${protocol}//${targetHost}/Home`;
           }
         }
@@ -177,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (tenantUrl) {
         window.location.href = `${tenantUrl}/Home`;
       } else {
-        const targetHost = hostname.replace(/skillztest|skillz|talentiq/gi, 'apps');
+        const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace');
         window.location.href = `${protocol}//${targetHost}/Home`;
       }
     }
