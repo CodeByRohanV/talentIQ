@@ -19,6 +19,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string, companyName?: string) => Promise<{ error: any | null }>;
   signIn: (email: string, password: string) => Promise<{ error: any | null; forcePasswordReset?: boolean }>;
   signOut: () => Promise<void>;
+  initError: any | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState<any | null>(null);
 
   useEffect(() => {
     // Log the resolved API URL once on mount — open DevTools Console to confirm the correct backend
@@ -118,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         console.warn('[SSO] fetchUser failed with non-auth error (status:', status, ') — not redirecting to workspace');
+        setInitError(error);
       }
     } finally {
       setLoading(false);
@@ -184,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, initError }}>
       {children}
     </AuthContext.Provider>
   );
