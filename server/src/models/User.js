@@ -20,7 +20,7 @@ export const findUserByEmail = async (email) => {
 
 export const findUserByIdentifier = async (identifier) => {
     const result = await query(
-        `SELECT *, split_part(id, '_', 1) as tenant_id FROM users WHERE email = $1 OR employee_id = $1`,
+        `SELECT *, split_part(id::text, '_', 1) as tenant_id FROM users WHERE email = $1 OR employee_id = $1`,
         [identifier]
     );
     return result.rows[0];
@@ -28,7 +28,7 @@ export const findUserByIdentifier = async (identifier) => {
 
 export const findUserById = async (id) => {
     const result = await query(
-        'SELECT id, email, full_name, company_name, manager_id, domain_id, split_part(id, \'_\', 1) as tenant_id, created_at, updated_at, must_change_password FROM users WHERE id = $1',
+        'SELECT id, email, full_name, company_name, manager_id, domain_id, split_part(id::text, \'_\', 1) as tenant_id, created_at, updated_at, must_change_password FROM users WHERE id = $1',
         [id]
     );
     return result.rows[0];
@@ -113,7 +113,7 @@ export const updatePassword = async (id, passwordHash) => {
 
 export const getUserRoles = async (userId) => {
     const result = await query(
-        `SELECT ur.role_id, split_part(ur.user_id, '_', 1) as tenant_id, r.name as role_name 
+        `SELECT ur.role_id, split_part(ur.user_id::text, '_', 1) as tenant_id, r.name as role_name 
          FROM user_roles ur
          JOIN roles r ON ur.role_id = r.id
          WHERE ur.user_id = $1`,

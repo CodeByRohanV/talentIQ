@@ -109,7 +109,7 @@ export const listUsers = async (req, res, next) => {
         const params = [];
 
         if (!roles.includes('SUPER_ADMIN')) {
-            queryText += ` AND split_part(ur.user_id, '_', 1) = $${params.length + 1}`;
+            queryText += ` AND split_part(ur.user_id::text, '_', 1) = $${params.length + 1}`;
             params.push(tenantId);
         }
 
@@ -184,7 +184,7 @@ export const getHierarchy = async (req, res, next) => {
              FROM users u
              JOIN user_roles ur ON u.id = ur.user_id
              JOIN roles r ON ur.role_id = r.id
-             WHERE r.name = 'MANAGER' AND split_part(ur.user_id, '_', 1) = $1`,
+             WHERE r.name = 'MANAGER' AND split_part(ur.user_id::text, '_', 1) = $1`,
             [tenantId]
         );
 
@@ -292,7 +292,7 @@ export const updateUser = async (req, res, next) => {
 
         // 1. Validate if user exists and get their tenant
         const userCheck = await query(
-            `SELECT ur.role_id, r.name as role_name, split_part(ur.user_id, '_', 1) as tenant_id
+            `SELECT ur.role_id, r.name as role_name, split_part(ur.user_id::text, '_', 1) as tenant_id
              FROM user_roles ur 
              JOIN roles r ON ur.role_id = r.id 
              WHERE ur.user_id = $1 ${!isSuperAdmin ? 'AND split_part(ur.user_id, \'_\', 1) = $2' : ''}`,

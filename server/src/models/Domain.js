@@ -44,11 +44,11 @@ export const findDomainsRoleAware = async (actorId, tenantId, roles, managerId) 
                     'hard', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'hard')::int
                 ) FROM questions q 
                  WHERE (q.domain_id = d.id OR (q.domain_id IS NULL AND q.domain::text = d.slug))
-                 AND (split_part(q.created_by, '_', 1) = $1 OR q.created_by IS NULL)
+                 AND (split_part(q.created_by::text, '_', 1) = $1 OR q.created_by IS NULL)
                  AND q.is_deleted = false) as counts
             FROM domains d
             WHERE d.is_active = true
-            AND (split_part(d.recruiter_id, '_', 1) = $1 OR d.recruiter_id IS NULL)
+            AND (split_part(d.recruiter_id::text, '_', 1) = $1 OR d.recruiter_id IS NULL)
             ORDER BY d.slug`;
     } else if (isManager) {
         params = [tenantId, managerId || actorId];
@@ -61,12 +61,12 @@ export const findDomainsRoleAware = async (actorId, tenantId, roles, managerId) 
                     'hard', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'hard')::int
                 ) FROM questions q 
                  WHERE (q.domain_id = d.id OR (q.domain_id IS NULL AND q.domain::text = d.slug))
-                 AND (split_part(q.created_by, '_', 1) = $1 OR q.created_by IS NULL)
+                 AND (split_part(q.created_by::text, '_', 1) = $1 OR q.created_by IS NULL)
                  AND (q.created_by_manager_id = $2 OR q.created_by IS NULL)
                  AND q.is_deleted = false) as counts
             FROM domains d
             WHERE d.is_active = true
-            AND (split_part(d.recruiter_id, '_', 1) = $1 OR d.recruiter_id IS NULL)
+            AND (split_part(d.recruiter_id::text, '_', 1) = $1 OR d.recruiter_id IS NULL)
             AND (d.created_by_manager_id = $2 OR d.recruiter_id = $2 OR d.recruiter_id IS NULL)
             ORDER BY d.slug`;
     } else if (isRecruiter) {
@@ -80,12 +80,12 @@ export const findDomainsRoleAware = async (actorId, tenantId, roles, managerId) 
                     'hard', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'hard')::int
                 ) FROM questions q 
                  WHERE (q.domain_id = d.id OR (q.domain_id IS NULL AND q.domain::text = d.slug))
-                 AND (split_part(q.created_by, '_', 1) = $1 OR q.created_by IS NULL)
+                 AND (split_part(q.created_by::text, '_', 1) = $1 OR q.created_by IS NULL)
                  AND (q.created_by_manager_id = $3 OR q.created_by_manager_id = $2 OR q.created_by IS NULL)
                  AND q.is_deleted = false) as counts
             FROM domains d
             WHERE d.is_active = true
-            AND (split_part(d.recruiter_id, '_', 1) = $1 OR d.recruiter_id IS NULL)
+            AND (split_part(d.recruiter_id::text, '_', 1) = $1 OR d.recruiter_id IS NULL)
             AND (d.recruiter_id = $2 OR d.created_by_manager_id = $3 OR d.recruiter_id = $3 OR d.recruiter_id IS NULL)
             ORDER BY d.slug`;
     } else {
@@ -95,11 +95,11 @@ export const findDomainsRoleAware = async (actorId, tenantId, roles, managerId) 
             SELECT d.*, 
                 (SELECT jsonb_build_object('total', COUNT(*)::int) FROM questions q 
                  WHERE (q.domain_id = d.id OR (q.domain_id IS NULL AND q.domain::text = d.slug))
-                 AND split_part(q.created_by, '_', 1) = $1 AND q.created_by = $2
+                 AND split_part(q.created_by::text, '_', 1) = $1 AND q.created_by = $2
                  AND q.is_deleted = false) as counts
             FROM domains d
             WHERE d.is_active = true
-            AND (split_part(d.recruiter_id, '_', 1) = $1 OR d.recruiter_id IS NULL)
+            AND (split_part(d.recruiter_id::text, '_', 1) = $1 OR d.recruiter_id IS NULL)
             ORDER BY d.slug`;
     }
 
@@ -166,7 +166,7 @@ export const findOrCreateDomain = async (name, slug, userId, tenantId, managerId
     const existing = await query(
         `SELECT * FROM domains 
          WHERE (slug = $1 OR LOWER(name) = LOWER($2)) 
-         AND (split_part(recruiter_id, '_', 1) = $3 OR recruiter_id IS NULL)`,
+         AND (split_part(recruiter_id::text, '_', 1) = $3 OR recruiter_id IS NULL)`,
         [slug, name, tenantId]
     );
 

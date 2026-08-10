@@ -61,16 +61,16 @@ export const findAssessmentsRoleAware = async (userId, tenantId, roles, managerI
         queryText = `${baseQuery} ORDER BY a.created_at DESC`;
         params = [];
     } else if (roles.includes('ADMIN')) {
-        queryText = `${baseQuery} WHERE split_part(a.created_by, '_', 1) = $1 ORDER BY a.created_at DESC`;
+        queryText = `${baseQuery} WHERE split_part(a.created_by::text, '_', 1) = $1 ORDER BY a.created_at DESC`;
         params = [tenantId];
     } else if (roles.includes('MANAGER')) {
-        queryText = `${baseQuery} WHERE split_part(a.created_by, '_', 1) = $1 AND a.created_by_manager_id = $2 ORDER BY a.created_at DESC`;
+        queryText = `${baseQuery} WHERE split_part(a.created_by::text, '_', 1) = $1 AND a.created_by_manager_id = $2 ORDER BY a.created_at DESC`;
         params = [tenantId, managerId || userId];
     } else if (roles.includes('RECRUITER')) {
-        queryText = `${baseQuery} WHERE split_part(a.created_by, '_', 1) = $1 AND a.created_by_manager_id = $2 ORDER BY a.created_at DESC`;
+        queryText = `${baseQuery} WHERE split_part(a.created_by::text, '_', 1) = $1 AND a.created_by_manager_id = $2 ORDER BY a.created_at DESC`;
         params = [tenantId, managerId];
     } else {
-        queryText = `${baseQuery} WHERE split_part(a.created_by, '_', 1) = $1 AND a.created_by = $2 ORDER BY a.created_at DESC`;
+        queryText = `${baseQuery} WHERE split_part(a.created_by::text, '_', 1) = $1 AND a.created_by = $2 ORDER BY a.created_at DESC`;
         params = [tenantId, userId];
     }
 
@@ -88,7 +88,7 @@ export const findAssessmentById = async (id, tenantId = null) => {
     const params = [id];
 
     if (tenantId) {
-        queryText += " AND split_part(a.created_by, '_', 1) = $2";
+        queryText += " AND split_part(a.created_by::text, '_', 1) = $2";
         params.push(tenantId);
     }
 
@@ -181,7 +181,7 @@ export const updateAssessment = async (id, tenantId, updates) => {
     values.push(id);
 
     if (tenantId) {
-        queryText += ` AND split_part(created_by, '_', 1) = $${paramCount + 1}`;
+        queryText += ` AND split_part(created_by::text, '_', 1) = $${paramCount + 1}`;
         values.push(tenantId);
     }
 
@@ -199,7 +199,7 @@ export const deleteAssessment = async (id, tenantId = null) => {
     const params = [id];
 
     if (tenantId) {
-        queryText += " AND split_part(created_by, '_', 1) = $2";
+        queryText += " AND split_part(created_by::text, '_', 1) = $2";
         params.push(tenantId);
     }
 
@@ -217,7 +217,7 @@ export const deleteAssessments = async (ids, tenantId = null) => {
     const params = [ids];
 
     if (tenantId) {
-        queryText += " AND split_part(created_by, '_', 1) = $2";
+        queryText += " AND split_part(created_by::text, '_', 1) = $2";
         params.push(tenantId);
     }
 

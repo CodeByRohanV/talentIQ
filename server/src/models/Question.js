@@ -9,7 +9,7 @@ export const findQuestionsByTenantId = async (tenantId, filters = {}) => {
         SELECT q.*, COALESCE(d.name, INITCAP(REPLACE(q.domain::TEXT, '_', ' '))) as domain_name 
         FROM questions q
         LEFT JOIN domains d ON q.domain_id = d.id
-        WHERE (split_part(q.created_by, '_', 1) = $1 OR q.created_by IS NULL)
+        WHERE (split_part(q.created_by::text, '_', 1) = $1 OR q.created_by IS NULL)
         AND q.is_deleted = false
     `;
     const params = [tenantId];
@@ -199,7 +199,7 @@ export const countQuestions = async (tenantId = null, filters = {}) => {
     }
 
     if (tenantId) {
-        queryText += ` AND (split_part(q.created_by, '_', 1) = $${paramCount++} OR q.created_by IS NULL)`;
+        queryText += ` AND (split_part(q.created_by::text, '_', 1) = $${paramCount++} OR q.created_by IS NULL)`;
         params.push(tenantId);
     }
 
@@ -242,7 +242,7 @@ export const findQuestionById = async (id, tenantId = null) => {
     const params = [id];
 
     if (tenantId) {
-        queryText += " AND split_part(q.created_by, '_', 1) = $2";
+        queryText += " AND split_part(q.created_by::text, '_', 1) = $2";
         params.push(tenantId);
     }
 
@@ -288,7 +288,7 @@ export const updateQuestion = async (id, tenantId, updates) => {
     values.push(id);
 
     if (tenantId) {
-        queryText += ` AND (split_part(created_by, '_', 1) = $${paramCount} OR created_by IS NULL)`;
+        queryText += ` AND (split_part(created_by::text, '_', 1) = $${paramCount} OR created_by IS NULL)`;
         values.push(tenantId);
     }
 
@@ -310,7 +310,7 @@ export const deleteQuestion = async (id, tenantId = null) => {
     const params = [id];
 
     if (tenantId) {
-        queryText += " AND split_part(created_by, '_', 1) = $2";
+        queryText += " AND split_part(created_by::text, '_', 1) = $2";
         params.push(tenantId);
     }
 
@@ -329,7 +329,7 @@ export const deleteQuestions = async (ids, tenantId = null) => {
     const params = [ids];
 
     if (tenantId) {
-        queryText += " AND split_part(created_by, '_', 1) = $2";
+        queryText += " AND split_part(created_by::text, '_', 1) = $2";
         params.push(tenantId);
     }
 
@@ -349,7 +349,7 @@ export const deleteQuestionsByFilter = async (tenantId, filters = {}, isSuperAdm
     let paramCount = 1;
 
     if (!isSuperAdmin) {
-        queryText += ` AND (split_part(created_by, '_', 1) = $${paramCount} OR created_by IS NULL)`;
+        queryText += ` AND (split_part(created_by::text, '_', 1) = $${paramCount} OR created_by IS NULL)`;
         params.push(tenantId);
         paramCount++;
     }
@@ -382,7 +382,7 @@ export const checkQuestionsInAssessmentsByFilter = async (tenantId, filters = {}
     let paramCount = 1;
 
     if (!isSuperAdmin) {
-        queryText += ` AND (split_part(q.created_by, '_', 1) = $${paramCount} OR q.created_by IS NULL)`;
+        queryText += ` AND (split_part(q.created_by::text, '_', 1) = $${paramCount} OR q.created_by IS NULL)`;
         params.push(tenantId);
         paramCount++;
     }

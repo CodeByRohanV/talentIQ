@@ -12,7 +12,7 @@ export const getStats = async (req, res, next) => {
         } else if (roles.includes('ADMIN')) {
             questionsRes = await query(
                 `SELECT COUNT(*) FROM questions 
-                 WHERE (split_part(created_by, '_', 1) = $1 OR created_by IS NULL)
+                 WHERE (split_part(created_by::text, '_', 1) = $1 OR created_by IS NULL)
                  AND is_deleted = false`,
                 [tenantId]
             );
@@ -20,7 +20,7 @@ export const getStats = async (req, res, next) => {
             // MANAGER or RECRUITER
             questionsRes = await query(
                 `SELECT COUNT(*) FROM questions 
-                 WHERE (split_part(created_by, '_', 1) = $1 OR created_by IS NULL)
+                 WHERE (split_part(created_by::text, '_', 1) = $1 OR created_by IS NULL)
                  AND (created_by_manager_id = $2 OR domain_id = $3 OR created_by IS NULL)
                  AND is_deleted = false`,
                 [tenantId, managerId || actorId, userDomainId]
