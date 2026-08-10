@@ -42,7 +42,7 @@ app.use(helmet({
 // CORS configuration
 const allowedOrigins = process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-    : ['https://skillztest.scaloz.com', 'http://skillztest.scaloz.com'];
+    : ['https://skillztest.scaloz.com', 'http://skillztest.scaloz.com', 'https://*.skillztest.scaloz.com', 'http://*.skillztest.scaloz.com'];
 
 const corsOptions = {
     origin: function (origin, callback) {
