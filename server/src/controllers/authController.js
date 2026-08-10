@@ -184,12 +184,6 @@ export const getMe = async (req, res, next) => {
             // Default to SUPER_ADMIN for workspace-launched SSO users
             const roleName = 'SUPER_ADMIN';
 
-            // JIT Provision Tenant if it doesn't exist (to satisfy fk_users_tenant constraint)
-            await query(
-                `INSERT INTO tenants (id, name, status) VALUES ($1, $2, 'Active') ON CONFLICT (id) DO NOTHING`,
-                [tenantId, req.auth.tenantName || tenantId]
-            );
-
             // Create the user with a random password (they will always log in via SSO)
             // Let Postgres generate the UUID for id automatically.
             const randomPassword = await hashPassword(Math.random().toString(36).slice(-12));
