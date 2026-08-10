@@ -50,11 +50,14 @@ export const findResultsByAssessmentIds = async (assessmentIds) => {
     if (assessmentIds.length === 0) return [];
 
     const result = await query(
-        `SELECT r.*, c.name as candidate_name, c.email as candidate_email, c.completed_at, a.title as assessment_title,
-         (SELECT COUNT(*)::int FROM test_violations tv WHERE tv.candidate_id = r.candidate_id AND tv.violation_type = 'tab_switch') as tab_switch_count
+        `SELECT r.*, c.name as candidate_name, c.email as candidate_email, c.started_at, c.completed_at, a.title as assessment_title,
+         (SELECT COUNT(*)::int FROM test_violations tv WHERE tv.candidate_id = r.candidate_id AND tv.violation_type = 'tab_switch') as tab_switch_count,
+         ta.photo_id_url,
+         ta.ip_address
          FROM results r
          JOIN candidates c ON r.candidate_id = c.id
          JOIN assessments a ON c.assessment_id = a.id
+         LEFT JOIN test_attempts ta ON ta.candidate_id = c.id
          WHERE c.assessment_id = ANY($1)
          ORDER BY r.calculated_at DESC`,
         [assessmentIds]
@@ -87,6 +90,29 @@ export const findDetailedResponsesByCandidateId = async (candidateId) => {
          WHERE c.id = $1
          ORDER BY aq.question_order ASC NULLS LAST`,
         [candidateId]
+    );
+    return result.rows;
+};
+
+export const findAllDetailedResponsesByAssessmentId = async (assessmentId) => {
+    const result = await query(
+        `SELECT
+            c.id AS candidate_id,
+            COALESCE(q.question_text, '[Deleted Question]') AS question_text,
+            COALESCE(q.options, '[]'::jsonb)               AS options,
+            q.correct_answer,
+            COALESCE(q.domain::text, 'unknown')            AS domain,
+            COALESCE(q.difficulty, 'unknown')              AS difficulty,
+            r.selected_answer,
+            r.answered_at,
+            CASE WHEN r.id IS NOT NULL THEN true ELSE false END AS is_answered
+         FROM candidates c
+         JOIN assessment_questions aq ON c.assessment_id = aq.assessment_id
+         LEFT JOIN questions q ON aq.question_id = q.id
+         LEFT JOIN responses r ON r.question_id = aq.question_id AND r.candidate_id = c.id
+         WHERE c.assessment_id = $1 AND c.status = 'completed'
+         ORDER BY c.id ASC, aq.question_order ASC NULLS LAST`,
+        [assessmentId]
     );
     return result.rows;
 };

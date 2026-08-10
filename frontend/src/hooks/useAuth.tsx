@@ -103,12 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (isAuthRejection) {
         const hostname = window.location.hostname;
-        const isLocal = hostname === 'localhost' || hostname.endsWith('.localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
+        const isLocal = hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.match(/^\d+\.\d+\.\d+\.\d+$/);
         if (isLocal) {
           window.location.href = 'http://localhost:3001/Home';
         } else {
           const protocol = window.location.protocol;
-          const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/\bskillz\b/gi, 'workspace');
+          const targetHost = hostname.replace(/\btalentiq\b/gi, 'apps');
           window.location.href = `${protocol}//${targetHost}/Home`;
         }
       } else {
@@ -163,12 +163,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const protocol = window.location.protocol;
     
     // Check if we are running locally (localhost, *.localhost, or local IP)
-    const isLocal = hostname === 'localhost' || hostname.endsWith('.localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
+    const isLocal = hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.match(/^\d+\.\d+\.\d+\.\d+$/);
     
     if (isLocal) {
       window.location.href = `http://${hostname}:3001/Home`;
     } else {
-      const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/\bskillz\b/gi, 'workspace');
+      const targetHost = hostname.replace(/\btalentiq\b/gi, 'apps');
       window.location.href = `${protocol}//${targetHost}/Home`;
     }
   };

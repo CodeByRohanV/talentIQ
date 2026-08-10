@@ -32,7 +32,6 @@ import { errorHandler, notFound } from './middleware/errorHandler.js';
 const app = express();
 app.set('trust proxy', 1);
 
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // Security middleware
 app.use(helmet({
@@ -54,7 +53,7 @@ const corsOptions = {
         const isAllowed = allowedOrigins.some(allowed => {
             if (allowed === '*') return true;
             if (allowed.toLowerCase() === origin.toLowerCase()) return true;
-
+            
             if (allowed.includes('*')) {
                 // Escape regex special chars except * and replace * with a pattern for valid subdomains
                 const escaped = allowed.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[a-zA-Z0-9-]+');
@@ -78,10 +77,13 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+// Serve static uploads with CORS enabled
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
 // Rate limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_MAX) || (process.env.NODE_ENV === 'production' ? 10000 : 5000),
+    max: parseInt(process.env.RATE_LIMIT_MAX) || (process.env.NODE_ENV === 'production' ? 10000 : 5000), 
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
@@ -107,7 +109,7 @@ app.use(['/api/test', '/test'], testLimiter);
 // Stricter rate limit for auth routes
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: process.env.NODE_ENV === 'production' ? 100 : 500,
+    max: process.env.NODE_ENV === 'production' ? 100 : 500, 
     message: 'Too many authentication attempts, please try again later.'
 });
 app.use(['/api/auth/login', '/auth/login', '/api/auth/register', '/auth/register'], authLimiter);

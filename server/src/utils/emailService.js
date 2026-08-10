@@ -4,25 +4,25 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    tls: { rejectUnauthorized: false }
+  host: process.env.SMTP_HOST,
+  port: 587,
+  secure: false,
+  requireTLS: true,
+  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  tls: { rejectUnauthorized: false }
 });
 
 const getFrontendBaseUrl = () => {
-    const rawUrl = process.env.FRONTEND_URL || 'https://skillztest.scaloz.com';
-    if (rawUrl.includes(',')) {
-        const urls = rawUrl.split(',').map(u => u.trim());
-        const standardHttps = urls.find(u => u.startsWith('https://') && !u.includes('*'));
-        if (standardHttps) return standardHttps;
-        const standardHttp = urls.find(u => u.startsWith('http://') && !u.includes('*'));
-        if (standardHttp) return standardHttp;
-        return urls[0].replace('*.', '');
-    }
-    return rawUrl;
+  const rawUrl = process.env.FRONTEND_URL || 'https://skillztest.scaloz.com';
+  if (rawUrl.includes(',')) {
+    const urls = rawUrl.split(',').map(u => u.trim());
+    const standardHttps = urls.find(u => u.startsWith('https://') && !u.includes('*'));
+    if (standardHttps) return standardHttps;
+    const standardHttp = urls.find(u => u.startsWith('http://') && !u.includes('*'));
+    if (standardHttp) return standardHttp;
+    return urls[0].replace('*.', '');
+  }
+  return rawUrl;
 };
 
 export const sendVerificationEmail = async (email, token) => {
@@ -128,6 +128,31 @@ export const sendAssessmentLinkEmail = async (email, assessmentTitle, shareToken
                 <p style="word-break: break-all; color: #6d28d9;">${assessmentLink}</p>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
                 <p style="font-size: 12px; color: #666; text-align: center;">This is an automated message from skillz. Please do not reply to this email.</p>
+            </div>
+        `,
+    };
+
+    return transporter.sendMail(mailOptions);
+};
+
+export const sendOtpEmail = async (email, otp, assessmentTitle) => {
+    const mailOptions = {
+        from: `"skillz" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: `Your Verification Code for ${assessmentTitle}`,
+        html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="color: #6d28d9; margin: 0;">skillz Verification</h2>
+                </div>
+                <p>Hello,</p>
+                <p>You requested to start the assessment <strong>${assessmentTitle}</strong>. Please use the following 6-digit code to verify your email address:</p>
+                <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                    <h1 style="margin: 0; font-size: 32px; letter-spacing: 5px; color: #1f2937;">${otp}</h1>
+                </div>
+                <p>This code will expire in 10 minutes.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="font-size: 12px; color: #666; text-align: center;">If you did not request this, please ignore this email.</p>
             </div>
         `,
     };

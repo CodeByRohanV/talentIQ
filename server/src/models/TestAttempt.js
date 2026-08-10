@@ -59,9 +59,10 @@ export const findAttemptById = async (attemptId) => {
  * @param {string[]} questionOrder - Shuffled array of question UUIDs.
  * @param {Object} optionOrderMap - Map of questionId -> shuffled option indices.
  * @param {number} durationMinutes - Assessment duration for computing expires_at.
+ * @param {string} ipAddress - IP address of the candidate.
  * @returns {Object} The created or existing attempt row.
  */
-export const createAttempt = async (candidateId, assessmentId, questionOrder, optionOrderMap, durationMinutes) => {
+export const createAttempt = async (candidateId, assessmentId, questionOrder, optionOrderMap, durationMinutes, ipAddress = null) => {
     const client = await getClient();
     try {
         await client.query('BEGIN');
@@ -90,14 +91,15 @@ export const createAttempt = async (candidateId, assessmentId, questionOrder, op
         // the record in 'pending' state.
         const result = await client.query(
             `INSERT INTO test_attempts
-                (candidate_id, assessment_id, randomized_question_order, randomized_option_order, attempt_status)
-             VALUES ($1, $2, $3, $4, 'pending')
+                (candidate_id, assessment_id, randomized_question_order, randomized_option_order, attempt_status, ip_address)
+             VALUES ($1, $2, $3, $4, 'pending', $5)
              RETURNING *`,
             [
                 candidateId,
                 assessmentId,
                 JSON.stringify(questionOrder),
-                JSON.stringify(optionOrderMap)
+                JSON.stringify(optionOrderMap),
+                ipAddress
             ]
         );
 
@@ -133,6 +135,25 @@ export const startAttempt = async (attemptId, durationMinutes, availableUntil = 
            AND attempt_status IN ('pending', 'in_progress')
          RETURNING *`,
         [attemptId, durationMinutes, availableUntil || 'infinity']
+    );
+    return result.rows[0] || null;
+};
+
+/**
+ * Save the photo ID URL for an attempt.
+ *
+ * @param {string} attemptId
+ * @param {string} photoIdUrl
+ * @returns {Object} Updated attempt row.
+ */
+export const setPhotoId = async (attemptId, photoIdUrl) => {
+    const result = await query(
+        `UPDATE test_attempts
+         SET photo_id_url = $2,
+             updated_at = NOW()
+         WHERE id = $1
+         RETURNING *`,
+        [attemptId, photoIdUrl]
     );
     return result.rows[0] || null;
 };

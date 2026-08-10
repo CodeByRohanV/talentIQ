@@ -138,7 +138,8 @@ export const getTestByToken = async (req, res, next) => {
                             description: assessment.description,
                             durationMinutes: assessment.duration_minutes,
                             instructions: assessment.instructions,
-                            availableFrom: assessment.available_from
+                            availableFrom: assessment.available_from,
+                            requiresPhotoId: !!assessment.requires_photo_id
                         }
                     }
                 });
@@ -171,7 +172,8 @@ export const getTestByToken = async (req, res, next) => {
                         durationMinutes: assessment.duration_minutes,
                         instructions: assessment.instructions,
                         availableFrom: assessment.available_from,
-                        availableUntil: assessment.available_until
+                        availableUntil: assessment.available_until,
+                        requiresPhotoId: !!assessment.requires_photo_id
                     }
                 }
             });
@@ -256,13 +258,16 @@ export const getTestByToken = async (req, res, next) => {
             // First time this candidate loads the test (or stale attempt cleared) — generate shuffle
             const questionOrder = buildRandomizedQuestionOrder(rawQuestions);
             const optionOrderMap = buildRandomizedOptionOrder(rawQuestions);
+            
+            const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
 
             attempt = await TestAttempt.createAttempt(
                 candidate.id,
                 candidateAssessment.id,
                 questionOrder,
                 optionOrderMap,
-                candidateAssessment.duration_minutes
+                candidateAssessment.duration_minutes,
+                ipAddress
             );
         }
 
@@ -355,14 +360,17 @@ export const getTestByToken = async (req, res, next) => {
                     id: candidate.id,
                     name: candidate.name,
                     status: candidate.status,
-                    startedAt: attempt.started_at
+                    startedAt: attempt.started_at,
+                    photoIdCaptured: !!attempt.photo_id_url
                 },
                 assessment: {
                     id: candidateAssessment.id,
                     title: candidateAssessment.title,
                     description: candidateAssessment.description,
                     durationMinutes: candidateAssessment.duration_minutes,
-                    instructions: candidateAssessment.instructions
+                    instructions: candidateAssessment.instructions,
+                    videoProctoringEnabled: !!candidateAssessment.video_proctoring_enabled,
+                    requiresPhotoId: !!candidateAssessment.requires_photo_id
                 },
                 securityConfig,
                 violationCount,
@@ -612,6 +620,49 @@ export const logViolation = async (req, res, next) => {
         );
 
         return res.json({ success: true, message: 'Violation logged' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ---------------------------------------------------------------------------
+// POST /:token/photo-id — Upload a photo ID
+// ---------------------------------------------------------------------------
+export const uploadPhotoId = async (req, res, next) => {
+    try {
+        const { token } = req.params;
+
+        if (!token) {
+            return res.status(400).json({ success: false, message: 'Candidate token is required' });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No photo provided' });
+        }
+
+        const candidate = await Candidate.findCandidateByShareToken(token);
+        if (!candidate) {
+            return res.status(404).json({ success: false, message: 'Candidate not found' });
+        }
+
+        if (candidate.status === 'completed') {
+            return res.status(400).json({ success: false, message: 'Test already completed' });
+        }
+
+        const attempt = await TestAttempt.findAttemptByCandidateAndAssessment(
+            candidate.id,
+            candidate.assessment_id
+        );
+
+        if (!attempt) {
+            return res.status(400).json({ success: false, message: 'No active test attempt found' });
+        }
+
+        const photoIdUrl = '/uploads/' + req.file.filename;
+
+        await TestAttempt.setPhotoId(attempt.id, photoIdUrl);
+
+        return res.json({ success: true, photoIdUrl });
     } catch (error) {
         next(error);
     }

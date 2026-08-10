@@ -2,11 +2,11 @@ import crypto from 'crypto';
 import { query, getClient } from '../config/database.js';
 import { DEFAULT_SECURITY_CONFIG } from '../config/security.js';
 
-export const createAssessment = async (userId, tenantId, role, title, description, durationMinutes, questionsConfig, thresholds, securityConfig, managerId = null, expiresAt = null, instructions = null, availableFrom = null, availableUntil = null) => {
+export const createAssessment = async (userId, tenantId, role, title, description, durationMinutes, questionsConfig, thresholds, securityConfig, managerId = null, expiresAt = null, instructions = null, availableFrom = null, availableUntil = null, videoProctoringEnabled = false, requiresPhotoId = false) => {
     const shareToken = crypto.randomBytes(16).toString('hex');
     const result = await query(
-        `INSERT INTO assessments (created_by, created_by_role, title, description, duration_minutes, questions_config, thresholds, security_config, created_by_manager_id, expires_at, instructions, available_from, available_until, share_token)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        `INSERT INTO assessments (created_by, created_by_role, title, description, duration_minutes, questions_config, thresholds, security_config, created_by_manager_id, expires_at, instructions, available_from, available_until, share_token, video_proctoring_enabled, requires_photo_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
          RETURNING *`,
         [
             userId,
@@ -22,7 +22,9 @@ export const createAssessment = async (userId, tenantId, role, title, descriptio
             instructions,
             availableFrom,
             availableUntil,
-            shareToken
+            shareToken,
+            videoProctoringEnabled !== undefined ? videoProctoringEnabled : false,
+            requiresPhotoId !== undefined ? requiresPhotoId : false
         ]
     );
     return result.rows[0];
@@ -159,6 +161,16 @@ export const updateAssessment = async (id, tenantId, updates) => {
     if (updates.available_until !== undefined) {
         fields.push(`available_until = $${paramCount++}`);
         values.push(updates.available_until);
+    }
+
+    if (updates.video_proctoring_enabled !== undefined) {
+        fields.push(`video_proctoring_enabled = $${paramCount++}`);
+        values.push(updates.video_proctoring_enabled);
+    }
+
+    if (updates.requires_photo_id !== undefined) {
+        fields.push(`requires_photo_id = $${paramCount++}`);
+        values.push(updates.requires_photo_id);
     }
 
     if (fields.length === 0) {

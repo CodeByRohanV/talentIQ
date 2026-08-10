@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { testAPI, candidatesAPI, proctoringAPI } from '@/lib/api';
 import ProctoringEngine from '@/components/proctoring/ProctoringEngine';
+import MultiMonitorDetector from '@/components/proctoring/MultiMonitorDetector';
 import {
   Clock,
   ChevronLeft,
@@ -66,6 +67,7 @@ interface Assessment {
   instructions: string | null;
   availableFrom?: string | null;
   availableUntil?: string | null;
+  videoProctoringEnabled?: boolean;
 }
 
 interface Candidate {
@@ -120,6 +122,7 @@ export default function TakeTest() {
   const securityConfigRef = useRef<SecurityConfig | null>(null);
   const testCompletedRef = useRef(false);
   const tokenRef = useRef<string | undefined>(token);
+  const internalClipboardRef = useRef<string>('');
   // Tracks when fullscreenchange last fired so resize events caused by
   // fullscreen transitions are not double-counted as separate violations
   const lastFullscreenChangeTime = useRef(0);
@@ -364,6 +367,11 @@ export default function TakeTest() {
 
       const { attemptId: initAttemptId, candidate: candidateData, assessment: assessmentData, securityConfig: securityData, questions: questionsData, responses: responsesData, timeRemaining: time, violationCount: vCount } = response.data;
 
+      if (assessmentData.requiresPhotoId && !candidateData.photoIdCaptured) {
+        navigate(`/test/${token}`, { replace: true });
+        return;
+      }
+
       setAttemptId(initAttemptId);
       setCandidate(candidateData);
       setAssessment(assessmentData);
@@ -427,6 +435,10 @@ export default function TakeTest() {
 
   const [registrationCompleted, setRegistrationCompleted] = useState(false);
   const [tempToken, setTempToken] = useState<string | null>(null);
+  
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [tempId, setTempId] = useState<number | null>(null);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -443,7 +455,15 @@ export default function TakeTest() {
         name: candidateName.trim(),
         email: candidateEmail.trim(),
       });
-      const newToken = response.data.shareToken || response.data.share_token;
+      
+      if (response.requiresOtp) {
+        setTempId(response.tempId);
+        setShowOtpInput(true);
+        setRegistering(false);
+        return;
+      }
+      
+      const newToken = response.data?.shareToken || response.data?.share_token || response.shareToken;
       if (newToken) {
         setTempToken(newToken);
         setRegistrationCompleted(true);
@@ -451,7 +471,27 @@ export default function TakeTest() {
         toast({ title: 'Registration failed', description: 'Access token missing', variant: 'destructive' });
       }
     } catch (err: any) {
-      toast({ title: 'Registration failed', description: err.message || 'Failed to register. Please try again.', variant: 'destructive' });
+      toast({ title: 'Registration failed', description: err.response?.data?.message || err.message || 'Failed to register. Please try again.', variant: 'destructive' });
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || !tempId) return;
+    setRegistering(true);
+    try {
+      const response = await candidatesAPI.verifyOtp({ tempId, otp: otpCode });
+      const newToken = response.data?.shareToken || response.data?.share_token || response.shareToken;
+      if (newToken) {
+        setTempToken(newToken);
+        setRegistrationCompleted(true);
+      } else {
+        toast({ title: 'Verification failed', description: 'Access token missing', variant: 'destructive' });
+      }
+    } catch (err: any) {
+      toast({ title: 'Verification failed', description: err.response?.data?.message || 'Invalid OTP.', variant: 'destructive' });
     } finally {
       setRegistering(false);
     }
@@ -544,28 +584,54 @@ export default function TakeTest() {
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
               <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md border border-slate-50">
-                <img src="/logo.png" alt="Xevyte" className="w-10 h-10 object-contain" />
+                <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain" />
               </div>
-              <CardTitle className="text-2xl">{assessmentForRegistration.title}</CardTitle>
-              {assessmentForRegistration.description && <CardDescription className="mt-2">{assessmentForRegistration.description}</CardDescription>}
+              <CardTitle className="text-2xl">{showOtpInput ? 'Verify Email' : assessmentForRegistration.title}</CardTitle>
+              {showOtpInput ? (
+                <CardDescription className="mt-2">Enter the 6-digit code sent to your email.</CardDescription>
+              ) : (
+                assessmentForRegistration.description && <CardDescription className="mt-2">{assessmentForRegistration.description}</CardDescription>
+              )}
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
-                  <Input id="name" type="text" placeholder="Enter your full name" value={candidateName} onChange={(e) => setCandidateName(e.target.value)} required disabled={registering} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address *</Label>
-                  <Input id="email" type="email" placeholder="Enter your email" value={candidateEmail} onChange={(e) => setCandidateEmail(e.target.value)} required disabled={registering} />
-                </div>
-                <div className="bg-muted p-3 rounded-lg text-sm">
-                  <p className="text-muted-foreground"><strong>Duration:</strong> {assessmentForRegistration.durationMinutes} minutes</p>
-                </div>
-                <Button type="submit" className="w-full" disabled={registering}>
-                  {registering ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Registering...</> : <><UserPlus className="mr-2 h-4 w-4" />Continue to Instructions</>}
-                </Button>
-              </form>
+              {showOtpInput ? (
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="otp">Verification Code *</Label>
+                    <Input 
+                      id="otp" 
+                      type="text" 
+                      placeholder="123456" 
+                      maxLength={6}
+                      value={otpCode} 
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} 
+                      required 
+                      disabled={registering} 
+                      className="text-center text-2xl tracking-widest"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={registering || otpCode.length !== 6}>
+                    {registering ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying...</> : <>Verify & Continue</>}
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name *</Label>
+                    <Input id="name" type="text" placeholder="Enter your full name" value={candidateName} onChange={(e) => setCandidateName(e.target.value)} required disabled={registering} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address *</Label>
+                    <Input id="email" type="email" placeholder="Enter your email" value={candidateEmail} onChange={(e) => setCandidateEmail(e.target.value)} required disabled={registering} />
+                  </div>
+                  <div className="bg-muted p-3 rounded-lg text-sm">
+                    <p className="text-muted-foreground"><strong>Duration:</strong> {assessmentForRegistration.durationMinutes} minutes</p>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={registering}>
+                    {registering ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Registering...</> : <><UserPlus className="mr-2 h-4 w-4" />Continue to Instructions</>}
+                  </Button>
+                </form>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -685,16 +751,45 @@ export default function TakeTest() {
     );
   }
 
+  const handleCopy = (e: React.ClipboardEvent) => {
+    if (securityConfig?.disableCopyPaste) {
+      e.preventDefault();
+      return;
+    }
+    const text = window.getSelection()?.toString() || '';
+    if (text) {
+      internalClipboardRef.current = text;
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    if (securityConfig?.disableCopyPaste) {
+      e.preventDefault();
+      return;
+    }
+    
+    const pastedText = e.clipboardData?.getData('text') || '';
+    if (pastedText && pastedText !== internalClipboardRef.current) {
+      e.preventDefault();
+      handleViolation('forbidden_action', { action: 'external_paste' });
+      toast({
+        title: 'External Paste Blocked',
+        description: 'Pasting content copied from outside the assessment is strictly prohibited.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div
       className="min-h-screen bg-background"
       onContextMenu={(e) => securityConfig?.disableRightClick && e.preventDefault()}
-      onCopy={(e) => securityConfig?.disableCopyPaste && e.preventDefault()}
-      onPaste={(e) => securityConfig?.disableCopyPaste && e.preventDefault()}
+      onCopy={handleCopy}
+      onPaste={handlePaste}
       onCut={(e) => securityConfig?.disableCopyPaste && e.preventDefault()}
       style={{ userSelect: securityConfig?.disableCopyPaste ? 'none' : 'auto' } as any}
     >
-      {!testCompleted && !isTerminated && assessment && candidate && attemptId && (
+      {!testCompleted && !isTerminated && assessment && candidate && attemptId && assessment.videoProctoringEnabled && (
          <ProctoringEngine attemptId={attemptId} onViolation={(t, m) => handleViolation(t as any, m)} isActive={true} />
       )}
       <AlertDialog open={!!securityConfig?.fullscreenRequired && !document.fullscreenElement && !testCompleted && !isTerminated}>

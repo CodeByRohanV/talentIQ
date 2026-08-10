@@ -67,8 +67,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="skillz" className="h-8 w-8 rounded-lg" />
-            <span className="font-semibold">skillz</span>
+            <img src="/logo.png" alt="TalentiQ" className="h-8 w-8 rounded-lg" />
+            <span className="font-semibold">TalentiQ</span>
           </div>
         </div>
 
@@ -120,12 +120,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         )}>
           {!collapsed && (
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="skillz" className="h-9 w-9 rounded-lg shadow-sm" />
-              <span className="font-bold text-lg">skillz</span>
+              <img src="/logo.png" alt="TalentiQ" className="h-9 w-9 rounded-lg shadow-sm" />
+              <span className="font-bold text-lg">TalentiQ</span>
             </div>
           )}
           {collapsed && (
-            <img src="/logo.png" alt="skillz" className="h-9 w-9 rounded-lg" />
+            <img src="/logo.png" alt="TalentiQ" className="h-9 w-9 rounded-lg" />
           )}
         </div>
 

@@ -7,6 +7,7 @@ const router = express.Router();
 
 // Public route for self-registration
 router.post('/register', candidateController.registerCandidate);
+router.post('/verify-otp', candidateController.verifyOtpAndRegister);
 
 // Protected routes (require authentication)
 router.get('/', requireAuth, requirePermission('manage_candidates'), candidateController.getCandidates);

@@ -29,6 +29,7 @@ export const getAssessments = async (req, res, next) => {
                 availableUntil: a.available_until || null,
                 securityConfig: a.security_config,
                 instructions: a.instructions,
+                videoProctoringEnabled: a.video_proctoring_enabled,
                 creatorName: a.creator_name,
                 creatorEmail: a.creator_email,
                 creatorRole: a.created_by_role,
@@ -69,6 +70,7 @@ export const getAssessment = async (req, res, next) => {
                 isActive: assessment.is_active,
                 status: assessment.status,
                 instructions: assessment.instructions,
+                videoProctoringEnabled: assessment.video_proctoring_enabled,
                 createdAt: assessment.created_at,
                 updatedAt: assessment.updated_at,
                 availableFrom: assessment.available_from || null,
@@ -84,7 +86,7 @@ export const getAssessment = async (req, res, next) => {
 
 export const createAssessment = async (req, res, next) => {
     try {
-        const { title, description, instructions, durationMinutes, questionsConfig, thresholds, securityConfig, questionIds, expiresAt } = req.body;
+        const { title, description, instructions, durationMinutes, questionsConfig, thresholds, securityConfig, questionIds, expiresAt, videoProctoringEnabled } = req.body;
         const { userId, tenantId, roles, managerId } = req.auth;
 
         if (!title) {
@@ -111,7 +113,9 @@ export const createAssessment = async (req, res, next) => {
             expiresAt,
             instructions,
             req.body.availableFrom || null,
-            req.body.availableUntil || null
+            req.body.availableUntil || null,
+            videoProctoringEnabled !== undefined ? videoProctoringEnabled : false,
+            req.body.requiresPhotoId !== undefined ? req.body.requiresPhotoId : false
         );
 
         // Assign questions if provided
@@ -142,6 +146,7 @@ export const createAssessment = async (req, res, next) => {
                 instructions: assessment.instructions,
                 availableFrom: assessment.available_from || null,
                 availableUntil: assessment.available_until || null,
+                videoProctoringEnabled: assessment.video_proctoring_enabled,
                 createdAt: assessment.created_at,
                 updatedAt: assessment.updated_at
             }
@@ -159,7 +164,7 @@ export const updateAssessment = async (req, res, next) => {
         const userPerms = permissions || [];
         const { 
             title, description, instructions, durationMinutes, isActive, 
-            status, securityConfig, expiresAt, availableFrom, availableUntil 
+            status, securityConfig, expiresAt, availableFrom, availableUntil, videoProctoringEnabled, requiresPhotoId
         } = req.body;
 
         // Security Enforcement: Refined Granular Checks
@@ -192,6 +197,8 @@ export const updateAssessment = async (req, res, next) => {
         // Ensure empty strings are treated as null to avoid invalid timestamp errors
         if (availableFrom !== undefined) updates.available_from = (availableFrom && availableFrom.trim() !== '') ? availableFrom : null;
         if (availableUntil !== undefined) updates.available_until = (availableUntil && availableUntil.trim() !== '') ? availableUntil : null;
+        if (videoProctoringEnabled !== undefined) updates.video_proctoring_enabled = videoProctoringEnabled;
+        if (requiresPhotoId !== undefined) updates.requires_photo_id = requiresPhotoId;
 
         const assessment = await Assessment.updateAssessment(id, isSuperAdmin ? null : tenantId, updates);
 
@@ -218,6 +225,8 @@ export const updateAssessment = async (req, res, next) => {
                 instructions: assessment.instructions,
                 availableFrom: assessment.available_from || null,
                 availableUntil: assessment.available_until || null,
+                videoProctoringEnabled: assessment.video_proctoring_enabled,
+                requiresPhotoId: assessment.requires_photo_id,
                 createdAt: assessment.created_at,
                 updatedAt: assessment.updated_at,
                 candidateCount: parseInt(assessment.candidate_count || 0)

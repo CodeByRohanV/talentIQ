@@ -3,6 +3,7 @@ import * as Assessment from '../models/Assessment.js';
 import { isValidEmail } from '../utils/validators.js';
 import { query } from '../config/database.js';
 import { processAllExpiredTests } from './testController.js';
+import { sendOtpEmail } from '../utils/emailService.js';
 
 export const getCandidates = async (req, res, next) => {
     try {
@@ -146,9 +147,71 @@ export const registerCandidate = async (req, res, next) => {
             });
         }
 
-        // Check for existing candidate with same email for this assessment
-        const existingCandidate = await Candidate.findCandidateByAssessmentAndEmail(assessmentId, email);
+        // We do NOT return the existing candidate's token here.
+        // Doing so would allow anyone to hijack a session just by knowing the email.
+        // Instead, we force EVERYONE to verify their email via OTP first.
+        // Generate a 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
+        
+        console.log(`\n=========================================`);
+        console.log(`[TESTING] Generated OTP for ${email}: ${otp}`);
+        console.log(`=========================================\n`);
 
+        const otpResult = await query(
+            `INSERT INTO candidate_otps (assessment_id, name, email, otp, expires_at)
+             VALUES ($1, $2, $3, $4, $5)
+             RETURNING id`,
+            [assessmentId, name, email, otp, expiresAt]
+        );
+
+        try {
+            await sendOtpEmail(email, otp, assessment.title);
+        } catch (emailError) {
+            console.error('[TESTING] Failed to send email (Check your SMTP credentials). OTP is still active in DB.', emailError.message);
+            // We don't throw here so they can still test using the console logged OTP
+        }
+
+        res.status(200).json({
+            success: true,
+            requiresOtp: true,
+            tempId: otpResult.rows[0].id,
+            message: 'OTP sent to your email.'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const verifyOtpAndRegister = async (req, res, next) => {
+    try {
+        const { tempId, otp } = req.body;
+
+        if (!tempId || !otp) {
+            return res.status(400).json({ success: false, message: 'Temp ID and OTP are required' });
+        }
+
+        const otpRecordResult = await query(
+            'SELECT * FROM candidate_otps WHERE id = $1',
+            [tempId]
+        );
+
+        const otpRecord = otpRecordResult.rows[0];
+
+        if (!otpRecord) {
+            return res.status(404).json({ success: false, message: 'Registration session not found or expired.' });
+        }
+
+        if (new Date() > new Date(otpRecord.expires_at)) {
+            return res.status(400).json({ success: false, message: 'OTP has expired. Please register again.' });
+        }
+
+        if (otpRecord.otp !== otp) {
+            return res.status(400).json({ success: false, message: 'Invalid OTP.' });
+        }
+
+        // Check again if already registered just in case
+        const existingCandidate = await Candidate.findCandidateByAssessmentAndEmail(otpRecord.assessment_id, otpRecord.email);
         if (existingCandidate) {
             return res.json({
                 success: true,
@@ -165,8 +228,11 @@ export const registerCandidate = async (req, res, next) => {
             });
         }
 
-        // Create new candidate
-        const candidate = await Candidate.createCandidate(assessmentId, name, email);
+        // Create the candidate
+        const candidate = await Candidate.createCandidate(otpRecord.assessment_id, otpRecord.name, otpRecord.email);
+
+        // Delete the OTP record as it is consumed
+        await query('DELETE FROM candidate_otps WHERE id = $1', [tempId]);
 
         res.status(201).json({
             success: true,

@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS candidate_otps (
+    id SERIAL PRIMARY KEY,
+    assessment_id INTEGER REFERENCES assessments(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    otp VARCHAR(6) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

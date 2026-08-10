@@ -29,11 +29,11 @@ export default function Index() {
     // Build the Scaloz workspace URL to redirect unauthenticated users back to.
     // For ALL local dev (localhost OR any .localhost subdomain like scalozflow.localhost),
     // always go back to the Scaloz tenant login at localhost:3001.
-    // For production, replace "skillz" with "workspace" in the hostname.
+    // For production, replace "TalentiQ" with "apps" in the hostname.
     const workspaceUrl: string =
       (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost'))
         ? 'http://localhost:3001/Home'
-        : `${protocol}//${hostname.replace(/skillztest/gi, 'workspacetest').replace(/\bskillz\b/gi, 'workspace')}/Home`;
+        : `${protocol}//${hostname.replace(/\bskillz\b/gi, 'apps')}/Home`;
 
     if (!loading) {
       if (user) {
@@ -64,8 +64,8 @@ export default function Index() {
       <nav className="fixed top-0 left-0 w-full z-50 border-b border-slate-200 bg-white/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="skillz" className="h-10 w-10 rounded-lg shadow-sm" />
-            <span className="font-extrabold text-2xl tracking-tighter text-[#0F172A]">skillz</span>
+            <img src="/logo.png" alt="TalentiQ" className="h-10 w-10 rounded-lg shadow-sm" />
+            <span className="font-extrabold text-2xl tracking-tighter text-[#0F172A]">TalentiQ</span>
           </div>
           <div className="hidden md:flex items-center gap-10">
             <a href="#product" className="text-sm font-semibold text-slate-600 hover:text-[#2563EB] transition-colors">Product</a>
@@ -181,8 +181,8 @@ export default function Index() {
           <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr] gap-16 mb-24">
             <div>
               <div className="flex items-center gap-2 mb-8">
-                <img src="/logo.png" alt="skillz" className="h-8 w-8 rounded-lg shadow-sm" />
-                <span className="font-extrabold text-xl tracking-tighter text-[#0F172A]">skillz</span>
+                <img src="/logo.png" alt="TalentiQ" className="h-8 w-8 rounded-lg shadow-sm" />
+                <span className="font-extrabold text-xl tracking-tighter text-[#0F172A]">TalentiQ</span>
               </div>
               <p className="text-slate-500 max-w-xs font-semibold leading-relaxed">Predictable and fair talent discovery for teams of all sizes.</p>
             </div>
@@ -203,7 +203,7 @@ export default function Index() {
             </div>
           </div>
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-12 border-t border-slate-200 text-slate-400 text-xs font-black uppercase tracking-[0.2em]">
-            <p>© {new Date().getFullYear()} skillz Tech. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} TalentiQ Tech. All rights reserved.</p>
           </div>
         </div>
       </footer>

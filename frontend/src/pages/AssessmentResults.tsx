@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
+import { resolveApiUrl } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { assessmentsAPI, candidatesAPI, resultsAPI, domainsAPI } from '@/lib/api';
 import { format } from 'date-fns';
@@ -78,7 +79,10 @@ interface CandidateResult {
   correctAnswers: number | null;
   incorrectAnswers: number | null;
   unansweredQuestions: number | null;
+  unansweredQuestions: number | null;
   tabSwitchCount: number | null;
+  photoIdUrl: string | null;
+  ipAddress: string | null;
 }
 
 interface Domain {
@@ -87,7 +91,314 @@ interface Domain {
   slug: string;
 }
 
+
+const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, getDomainName, onClose, assessmentTitle }: any) => {
+  return (
+    <div className="space-y-8 py-4" >
+              {/* Header Info - Using Table for PDF stability */}
+              <div className="bg-muted/40 p-6 rounded-2xl border border-border/50">
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ width: '40%', verticalAlign: 'top', paddingBottom: '4px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Email Address</p>
+                        <p style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>{candidate.email}</p>
+                      </td>
+                      <td style={{ width: '25%', verticalAlign: 'top', textAlign: 'center', paddingBottom: '4px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Method</p>
+                        <div style={{ display: 'inline-block', border: '1px solid #e2e8f0', padding: '2px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: '700', color: '#475569', backgroundColor: 'white', textTransform: 'capitalize' }}>
+                          {candidate.submissionMode || 'Manual'} Submission
+                        </div>
+                      </td>
+                      <td style={{ width: '25%', verticalAlign: 'top', textAlign: 'center', paddingBottom: '4px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>IP Address</p>
+                        <p style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>{candidate.ipAddress || 'N/A'}</p>
+                      </td>
+                      <td style={{ width: '20%', verticalAlign: 'top', textAlign: 'right', paddingBottom: '4px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Status</p>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <div style={{ 
+                            backgroundColor: candidate.passed ? '#10b981' : '#ef4444',
+                            color: 'white',
+                            padding: '4px 16px',
+                            borderRadius: '9999px',
+                            fontSize: '10px',
+                            fontWeight: '900',
+                            textTransform: 'uppercase',
+                            minWidth: '80px',
+                            textAlign: 'center',
+                            display: 'inline-block',
+                            lineHeight: '1.2'
+                          }}>
+                            {candidate.passed ? 'PASSED' : 'FAILED'}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style={{ paddingTop: '16px', verticalAlign: 'top' }}>
+                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Test Date</p>
+                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
+                          {candidate.startedAt ? format(new Date(candidate.startedAt), 'MMM dd, yyyy') : 'N/A'}
+                        </p>
+                      </td>
+                      <td style={{ paddingTop: '16px', verticalAlign: 'top', textAlign: 'center' }}>
+                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Start Time</p>
+                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
+                          {candidate.startedAt ? format(new Date(candidate.startedAt), 'hh:mm:ss a') : 'N/A'}
+                        </p>
+                      </td>
+                      <td style={{ paddingTop: '16px', verticalAlign: 'top', textAlign: 'right' }}>
+                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>End Time</p>
+                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
+                          {candidate.completedAt ? format(new Date(candidate.completedAt), 'hh:mm:ss a') : 'N/A'}
+                        </p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Photo ID Section */}
+              {candidate.photoIdUrl && (
+                <div className="flex flex-col items-center p-4 bg-muted/20 border rounded-xl">
+                  <p className="text-[10px] font-black uppercase text-muted-foreground mb-3">Identity Verification Photo</p>
+                  <img 
+                    src={`${resolveApiUrl(import.meta.env.VITE_API_URL).replace(/\/api$/, '')}${candidate.photoIdUrl}`} 
+                    alt="Candidate ID" 
+                    crossOrigin="anonymous"
+                    className="rounded-lg shadow-sm border max-w-[240px] max-h-[240px] object-cover" 
+                  />
+                </div>
+              )}
+
+              {/* Performance Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <Card className="bg-primary/5 border-primary/20 shadow-none">
+                  <CardContent className="pt-6 text-center p-4">
+                    <p className="text-[10px] font-black uppercase text-primary/60 mb-1">Score</p>
+                    <p className="text-3xl font-black text-primary">{candidate.overallScore !== null ? `${candidate.overallScore}%` : 'N/A'}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-success/5 border-success/20 shadow-none">
+                  <CardContent className="pt-6 text-center p-4">
+                    <p className="text-[10px] font-black uppercase text-success/60 mb-1">Correct</p>
+                    <p className="text-3xl font-black text-success">{candidate.correctAnswers !== null ? candidate.correctAnswers : '—'}</p>
+                  </CardContent>
+                </Card>
+                <Card className={cn(
+                  "shadow-none",
+                  (candidate.unansweredQuestions || 0) > 0 ? "bg-amber-50 border-amber-200" : "bg-muted border-border/50"
+                )}>
+                  <CardContent className="pt-6 text-center p-4">
+                    <p className={cn(
+                      "text-[10px] font-black uppercase mb-1",
+                      (candidate.unansweredQuestions || 0) > 0 ? "text-amber-600" : "text-muted-foreground"
+                    )}>Unanswered</p>
+                    <p className={cn(
+                      "text-3xl font-black",
+                      (candidate.unansweredQuestions || 0) > 0 ? "text-amber-600" : ""
+                    )}>{candidate.unansweredQuestions || 0}</p>
+                  </CardContent>
+                </Card>
+                <Card className={cn(
+                  "shadow-none",
+                  (candidate.tabSwitchCount || 0) > 0 ? "bg-destructive/5 border-destructive/20" : "bg-muted border-border/50"
+                )}>
+                  <CardContent className="pt-6 text-center p-4">
+                    <div className="flex flex-col items-center">
+                      <p className={cn(
+                        "text-[10px] font-black uppercase mb-1",
+                        (candidate.tabSwitchCount || 0) > 0 ? "text-destructive/60" : "text-muted-foreground"
+                      )}>Tab Switches</p>
+                      <div className="flex items-center gap-1">
+                        {(candidate.tabSwitchCount || 0) > 0 && <AlertTriangle className="h-4 w-4 text-destructive" />}
+                        <p className={cn(
+                          "text-3xl font-black",
+                          (candidate.tabSwitchCount || 0) > 0 ? "text-destructive" : ""
+                        )}>{candidate.tabSwitchCount || 0}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Security Advisory */}
+              {(candidate.tabSwitchCount || 0) > 0 && (
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-3">
+                  <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-bold text-destructive">Security Alert: Tab Switching Detected</h4>
+                    <p className="text-xs text-destructive/80 mt-1 leading-relaxed">
+                      This candidate attempted to switch browser tabs or windows **{candidate.tabSwitchCount} times** during the assessment.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Domain Breakdown */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold flex items-center gap-2 border-b pb-2">
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                  Domain-Wise Analysis
+                </h3>
+                <div className="grid gap-3">
+                  {candidate.domainScores && Object.entries(candidate.domainScores)
+                    .filter(([_, scoreData]) => {
+                      const total = typeof scoreData === 'object' ? (scoreData as any).total : 0;
+                      const percentage = typeof scoreData === 'object' ? (scoreData as any).percentage : scoreData;
+                      return (total && total > 0) || (percentage && percentage > 0);
+                    })
+                    .map(([domain, scoreData]) => {
+                    const isObject = typeof scoreData === 'object';
+                    const percentage = isObject ? (scoreData as any).percentage : scoreData;
+                    const correct = isObject ? (scoreData as any).correct : null;
+                    const total = isObject ? (scoreData as any).total : null;
+
+                    return (
+                      <div key={domain} className="p-4 bg-muted/20 rounded-xl border border-border/50">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-bold text-sm">{getDomainName(domain)}</span>
+                          <span className="font-black text-primary">{percentage}%</span>
+                        </div>
+                        <Progress value={percentage} className="h-2 mb-2" />
+                        {isObject && total > 0 && (
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                            Performance: {correct} / {total} correct answers
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Question Breakdown */}
+              <div className="space-y-4 pt-4 border-t">
+                <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
+                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                    <ClipboardList className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  Question-by-Question Breakdown
+                </h3>
+
+                {loadingDetailed ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                    <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                    <p className="text-sm">Loading detailed responses...</p>
+                  </div>
+                ) : detailedResponses.length === 0 ? (
+                  <div className="text-center py-10 bg-muted/20 rounded-xl border border-dashed">
+                    <p className="text-sm text-muted-foreground">No detailed responses available for this candidate.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {detailedResponses.map((item, idx) => (
+                      <Card key={idx} className={cn(
+                        "shadow-none border-l-4",
+                        item.selectedAnswer === item.correctAnswer 
+                          ? "border-l-success bg-success/5" 
+                          : item.selectedAnswer === null 
+                            ? "border-l-amber-500 bg-amber-50/30" 
+                            : "border-l-destructive bg-destructive/5"
+                      )}>
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between items-start gap-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold bg-muted-foreground/10 text-muted-foreground px-1.5 py-0.5 rounded uppercase">
+                                Q{idx + 1}
+                              </span>
+                              <span className="text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">
+                                {getDomainName(item.domain)}
+                              </span>
+                              {item.selectedAnswer === null && (
+                                <div style={{ fontSize: '9px', fontWeight: '900', color: '#b45309', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                  NOT ANSWERED
+                                </div>
+                              )}
+                              {item.selectedAnswer === item.correctAnswer && (
+                                <div style={{ fontSize: '9px', fontWeight: '900', color: 'white', backgroundColor: '#10b981', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                  CORRECT
+                                </div>
+                              )}
+                              {item.selectedAnswer !== null && item.selectedAnswer !== item.correctAnswer && (
+                                <div style={{ fontSize: '9px', fontWeight: '900', color: 'white', backgroundColor: '#ef4444', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                  INCORRECT
+                                </div>
+                              )}
+                            </div>
+                            <Badge variant="outline" className="text-[10px] capitalize">
+                              {item.difficulty}
+                            </Badge>
+                          </div>
+                          <CardTitle className="text-base font-semibold leading-relaxed pt-2">
+                            {item.questionText}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4 pt-2">
+                          <div className="grid gap-2">
+                            {item.options.map((option, optIdx) => (
+                              <div 
+                                key={optIdx} 
+                                className={cn(
+                                  "p-3 rounded-lg text-sm border flex items-center justify-between",
+                                  optIdx === item.correctAnswer 
+                                    ? "bg-success/10 border-success/30 text-success font-medium" 
+                                    : optIdx === item.selectedAnswer 
+                                      ? "bg-destructive/10 border-destructive/30 text-destructive font-medium" 
+                                      : "bg-background border-border"
+                                )}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className={cn(
+                                    "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
+                                    optIdx === item.correctAnswer ? "bg-success text-white" : "bg-muted"
+                                  )}>
+                                    {String.fromCharCode(65 + optIdx)}
+                                  </span>
+                                  {option}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {optIdx === item.correctAnswer && (
+                                    <span className="text-[9px] font-black uppercase text-success mr-2">Correct Answer</span>
+                                  )}
+                                  {optIdx === item.selectedAnswer && (
+                                    <span className={cn(
+                                      "text-[9px] font-black uppercase mr-2",
+                                      optIdx === item.correctAnswer ? "text-success" : "text-destructive"
+                                    )}>
+                                      {optIdx === item.correctAnswer ? "Your Choice" : "Candidate Selection"}
+                                    </span>
+                                  )}
+                                  {optIdx === item.correctAnswer && <CheckCircle className="h-4 w-4 shrink-0" />}
+                                  {optIdx === item.selectedAnswer && optIdx !== item.correctAnswer && <XCircleIcon className="h-4 w-4 shrink-0" />}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {item.selectedAnswer === null && (
+                            <div className="p-2 bg-amber-50 border border-amber-100 rounded text-[11px] text-amber-700 font-medium flex items-center gap-2">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              Candidate did not provide an answer for this question.
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <Button onClick={() => onClose && onClose()} className="px-8">Close Report</Button>
+              </div>
+            </div>
+
+  );
+};
+
 export default function AssessmentResults() {
+
   const { id } = useParams<{ id: string }>();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -107,6 +418,10 @@ export default function AssessmentResults() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'in_progress' | 'pending' | 'timed_out' | 'passed' | 'failed'>('all');
   const [sortConfig, setSortConfig] = useState<{ key: keyof CandidateResult; direction: 'asc' | 'desc' }>({ key: 'name', direction: 'asc' });
   const reportRef = useRef<HTMLDivElement>(null);
+  
+  const [bulkDownloading, setBulkDownloading] = useState(false);
+  const [bulkDetailedResponses, setBulkDetailedResponses] = useState<Record<string, DetailedResponse[]>>({});
+  const bulkReportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -226,6 +541,8 @@ export default function AssessmentResults() {
         incorrectAnswers: resultsMap[c.id]?.incorrectAnswers ?? null,
         unansweredQuestions: resultsMap[c.id]?.unansweredQuestions ?? null,
         tabSwitchCount: resultsMap[c.id]?.tabSwitchCount ?? null,
+        photoIdUrl: resultsMap[c.id]?.photoIdUrl ?? null,
+        ipAddress: resultsMap[c.id]?.ipAddress ?? null,
       }));
 
       setCandidates(combined);
@@ -285,6 +602,58 @@ export default function AssessmentResults() {
       title: 'Export complete',
       description: 'The results have been exported to Excel',
     });
+  };
+
+  const downloadAllPDFs = async () => {
+    if (!id || !bulkReportRef.current) return;
+    const completedCandidates = candidates.filter(c => c.status === 'completed');
+    if (completedCandidates.length === 0) {
+      toast({ title: 'No Candidates', description: 'There are no completed candidates to generate reports for.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      setBulkDownloading(true);
+      const res = await resultsAPI.getDetailedByAssessment(id);
+      setBulkDetailedResponses(res.data || {});
+
+      // Wait a moment for React to render the hidden bulk report div
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const element = bulkReportRef.current;
+      const fileName = `${assessmentTitle.replace(/\s+/g, '_')}_All_Reports.pdf`;
+
+      const options = {
+        margin: 10,
+        filename: fileName,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true,
+          logging: false,
+          letterRendering: true
+        },
+        jsPDF: { unit: 'mm', format: 'a4' as const, orientation: 'portrait' as const },
+        pagebreak: { mode: ['css', 'legacy'] }
+      };
+
+      const worker = html2pdf().set(options).from(element);
+      await worker.save();
+      
+      toast({
+        title: 'Bulk Download Complete',
+        description: 'All candidate reports have been merged and downloaded.',
+      });
+    } catch (error) {
+      console.error('Bulk PDF generation error:', error);
+      toast({
+        title: 'Download Failed',
+        description: 'Failed to generate bulk PDF reports. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setBulkDownloading(false);
+    }
   };
 
   const downloadPDF = async () => {
@@ -349,10 +718,16 @@ export default function AssessmentResults() {
             <h1 className="text-2xl lg:text-3xl font-bold">{assessmentTitle || 'Assessment'} — Results</h1>
             <p className="text-muted-foreground mt-1">View candidate scores and performance</p>
           </div>
-          <Button variant="outline" onClick={exportToExcel}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
-            Export Excel
-          </Button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <Button variant="outline" onClick={downloadAllPDFs} disabled={bulkDownloading || candidates.filter(c => c.status === 'completed').length === 0}>
+              {bulkDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              {bulkDownloading ? 'Generating PDFs...' : 'Download All Reports'}
+            </Button>
+            <Button variant="outline" onClick={exportToExcel}>
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Export Excel
+            </Button>
+          </div>
         </div>
 
         {loading ? (
@@ -615,271 +990,37 @@ export default function AssessmentResults() {
           </DialogHeader>
 
           {selectedCandidate && (
-            <div className="space-y-8 py-4" ref={reportRef}>
-              {/* Header Info - Using Table for PDF stability */}
-              <div className="bg-muted/40 p-6 rounded-2xl border border-border/50">
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <tbody>
-                    <tr>
-                      <td style={{ width: '40%', verticalAlign: 'top', paddingBottom: '4px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Email Address</p>
-                        <p style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>{selectedCandidate.email}</p>
-                      </td>
-                      <td style={{ width: '30%', verticalAlign: 'top', textAlign: 'center', paddingBottom: '4px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Method</p>
-                        <div style={{ display: 'inline-block', border: '1px solid #e2e8f0', padding: '2px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: '700', color: '#475569', backgroundColor: 'white', textTransform: 'capitalize' }}>
-                          {selectedCandidate.submissionMode || 'Manual'} Submission
-                        </div>
-                      </td>
-                      <td style={{ width: '30%', verticalAlign: 'top', textAlign: 'right', paddingBottom: '4px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Status</p>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                          <div style={{ 
-                            backgroundColor: selectedCandidate.passed ? '#10b981' : '#ef4444',
-                            color: 'white',
-                            padding: '4px 16px',
-                            borderRadius: '9999px',
-                            fontSize: '10px',
-                            fontWeight: '900',
-                            textTransform: 'uppercase',
-                            minWidth: '80px',
-                            textAlign: 'center',
-                            display: 'inline-block',
-                            lineHeight: '1.2'
-                          }}>
-                            {selectedCandidate.passed ? 'PASSED' : 'FAILED'}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Performance Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Card className="bg-primary/5 border-primary/20 shadow-none">
-                  <CardContent className="pt-6 text-center p-4">
-                    <p className="text-[10px] font-black uppercase text-primary/60 mb-1">Score</p>
-                    <p className="text-3xl font-black text-primary">{selectedCandidate.overallScore !== null ? `${selectedCandidate.overallScore}%` : 'N/A'}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-success/5 border-success/20 shadow-none">
-                  <CardContent className="pt-6 text-center p-4">
-                    <p className="text-[10px] font-black uppercase text-success/60 mb-1">Correct</p>
-                    <p className="text-3xl font-black text-success">{selectedCandidate.correctAnswers !== null ? selectedCandidate.correctAnswers : '—'}</p>
-                  </CardContent>
-                </Card>
-                <Card className={cn(
-                  "shadow-none",
-                  (selectedCandidate.unansweredQuestions || 0) > 0 ? "bg-amber-50 border-amber-200" : "bg-muted border-border/50"
-                )}>
-                  <CardContent className="pt-6 text-center p-4">
-                    <p className={cn(
-                      "text-[10px] font-black uppercase mb-1",
-                      (selectedCandidate.unansweredQuestions || 0) > 0 ? "text-amber-600" : "text-muted-foreground"
-                    )}>Unanswered</p>
-                    <p className={cn(
-                      "text-3xl font-black",
-                      (selectedCandidate.unansweredQuestions || 0) > 0 ? "text-amber-600" : ""
-                    )}>{selectedCandidate.unansweredQuestions || 0}</p>
-                  </CardContent>
-                </Card>
-                <Card className={cn(
-                  "shadow-none",
-                  (selectedCandidate.tabSwitchCount || 0) > 0 ? "bg-destructive/5 border-destructive/20" : "bg-muted border-border/50"
-                )}>
-                  <CardContent className="pt-6 text-center p-4">
-                    <div className="flex flex-col items-center">
-                      <p className={cn(
-                        "text-[10px] font-black uppercase mb-1",
-                        (selectedCandidate.tabSwitchCount || 0) > 0 ? "text-destructive/60" : "text-muted-foreground"
-                      )}>Tab Switches</p>
-                      <div className="flex items-center gap-1">
-                        {(selectedCandidate.tabSwitchCount || 0) > 0 && <AlertTriangle className="h-4 w-4 text-destructive" />}
-                        <p className={cn(
-                          "text-3xl font-black",
-                          (selectedCandidate.tabSwitchCount || 0) > 0 ? "text-destructive" : ""
-                        )}>{selectedCandidate.tabSwitchCount || 0}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Security Advisory */}
-              {(selectedCandidate.tabSwitchCount || 0) > 0 && (
-                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-3">
-                  <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-bold text-destructive">Security Alert: Tab Switching Detected</h4>
-                    <p className="text-xs text-destructive/80 mt-1 leading-relaxed">
-                      This candidate attempted to switch browser tabs or windows **{selectedCandidate.tabSwitchCount} times** during the assessment.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Domain Breakdown */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold flex items-center gap-2 border-b pb-2">
-                  <ClipboardList className="h-4 w-4 text-primary" />
-                  Domain-Wise Analysis
-                </h3>
-                <div className="grid gap-3">
-                  {selectedCandidate.domainScores && Object.entries(selectedCandidate.domainScores)
-                    .filter(([_, scoreData]) => {
-                      const total = typeof scoreData === 'object' ? (scoreData as any).total : 0;
-                      const percentage = typeof scoreData === 'object' ? (scoreData as any).percentage : scoreData;
-                      return (total && total > 0) || (percentage && percentage > 0);
-                    })
-                    .map(([domain, scoreData]) => {
-                    const isObject = typeof scoreData === 'object';
-                    const percentage = isObject ? (scoreData as any).percentage : scoreData;
-                    const correct = isObject ? (scoreData as any).correct : null;
-                    const total = isObject ? (scoreData as any).total : null;
-
-                    return (
-                      <div key={domain} className="p-4 bg-muted/20 rounded-xl border border-border/50">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-bold text-sm">{getDomainName(domain)}</span>
-                          <span className="font-black text-primary">{percentage}%</span>
-                        </div>
-                        <Progress value={percentage} className="h-2 mb-2" />
-                        {isObject && total > 0 && (
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-                            Performance: {correct} / {total} correct answers
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Question Breakdown */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
-                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                    <ClipboardList className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  Question-by-Question Breakdown
-                </h3>
-
-                {loadingDetailed ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                    <Loader2 className="h-8 w-8 animate-spin mb-2" />
-                    <p className="text-sm">Loading detailed responses...</p>
-                  </div>
-                ) : detailedResponses.length === 0 ? (
-                  <div className="text-center py-10 bg-muted/20 rounded-xl border border-dashed">
-                    <p className="text-sm text-muted-foreground">No detailed responses available for this candidate.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {detailedResponses.map((item, idx) => (
-                      <Card key={idx} className={cn(
-                        "shadow-none border-l-4",
-                        item.selectedAnswer === item.correctAnswer 
-                          ? "border-l-success bg-success/5" 
-                          : item.selectedAnswer === null 
-                            ? "border-l-amber-500 bg-amber-50/30" 
-                            : "border-l-destructive bg-destructive/5"
-                      )}>
-                        <CardHeader className="pb-2">
-                          <div className="flex justify-between items-start gap-4">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold bg-muted-foreground/10 text-muted-foreground px-1.5 py-0.5 rounded uppercase">
-                                Q{idx + 1}
-                              </span>
-                              <span className="text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">
-                                {getDomainName(item.domain)}
-                              </span>
-                              {item.selectedAnswer === null && (
-                                <div style={{ fontSize: '9px', fontWeight: '900', color: '#b45309', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                                  NOT ANSWERED
-                                </div>
-                              )}
-                              {item.selectedAnswer === item.correctAnswer && (
-                                <div style={{ fontSize: '9px', fontWeight: '900', color: 'white', backgroundColor: '#10b981', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                                  CORRECT
-                                </div>
-                              )}
-                              {item.selectedAnswer !== null && item.selectedAnswer !== item.correctAnswer && (
-                                <div style={{ fontSize: '9px', fontWeight: '900', color: 'white', backgroundColor: '#ef4444', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                                  INCORRECT
-                                </div>
-                              )}
-                            </div>
-                            <Badge variant="outline" className="text-[10px] capitalize">
-                              {item.difficulty}
-                            </Badge>
-                          </div>
-                          <CardTitle className="text-base font-semibold leading-relaxed pt-2">
-                            {item.questionText}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4 pt-2">
-                          <div className="grid gap-2">
-                            {item.options.map((option, optIdx) => (
-                              <div 
-                                key={optIdx} 
-                                className={cn(
-                                  "p-3 rounded-lg text-sm border flex items-center justify-between",
-                                  optIdx === item.correctAnswer 
-                                    ? "bg-success/10 border-success/30 text-success font-medium" 
-                                    : optIdx === item.selectedAnswer 
-                                      ? "bg-destructive/10 border-destructive/30 text-destructive font-medium" 
-                                      : "bg-background border-border"
-                                )}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <span className={cn(
-                                    "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
-                                    optIdx === item.correctAnswer ? "bg-success text-white" : "bg-muted"
-                                  )}>
-                                    {String.fromCharCode(65 + optIdx)}
-                                  </span>
-                                  {option}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {optIdx === item.correctAnswer && (
-                                    <span className="text-[9px] font-black uppercase text-success mr-2">Correct Answer</span>
-                                  )}
-                                  {optIdx === item.selectedAnswer && (
-                                    <span className={cn(
-                                      "text-[9px] font-black uppercase mr-2",
-                                      optIdx === item.correctAnswer ? "text-success" : "text-destructive"
-                                    )}>
-                                      {optIdx === item.correctAnswer ? "Your Choice" : "Candidate Selection"}
-                                    </span>
-                                  )}
-                                  {optIdx === item.correctAnswer && <CheckCircle className="h-4 w-4 shrink-0" />}
-                                  {optIdx === item.selectedAnswer && optIdx !== item.correctAnswer && <XCircleIcon className="h-4 w-4 shrink-0" />}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          {item.selectedAnswer === null && (
-                            <div className="p-2 bg-amber-50 border border-amber-100 rounded text-[11px] text-amber-700 font-medium flex items-center gap-2">
-                              <AlertCircle className="h-3.5 w-3.5" />
-                              Candidate did not provide an answer for this question.
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end pt-4">
-                <Button onClick={() => setShowResultDialog(false)} className="px-8">Close Report</Button>
-              </div>
-            </div>
+            <div ref={reportRef}><CandidateReportView 
+              candidate={selectedCandidate} 
+              detailedResponses={detailedResponses} 
+              loadingDetailed={loadingDetailed} 
+              getDomainName={getDomainName} 
+              onClose={() => setShowResultDialog(false)} 
+              assessmentTitle={assessmentTitle}
+            /></div>
           )}
         </DialogContent>
       </Dialog>
+
+      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', width: '1000px', backgroundColor: 'white' }}>
+        <div ref={bulkReportRef}>
+          {candidates.filter(c => c.status === 'completed').map((c, idx) => (
+             <div key={c.id} style={{ pageBreakAfter: 'always', paddingBottom: '20px', paddingTop: '20px' }}>
+                <div style={{ marginBottom: '20px', paddingBottom: '10px', borderBottom: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                   <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>Candidate Report: {c.name}</h2>
+                </div>
+                <CandidateReportView 
+                   candidate={c} 
+                   detailedResponses={bulkDetailedResponses[c.id] || []} 
+                   loadingDetailed={false} 
+                   getDomainName={getDomainName} 
+                   assessmentTitle={assessmentTitle}
+                />
+             </div>
+          ))}
+        </div>
+      </div>
     </DashboardLayout>
+
   );
 }

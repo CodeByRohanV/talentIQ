@@ -23,6 +23,7 @@ import Admin from "./pages/Admin";
 import ProctoringEvidence from "./pages/ProctoringEvidence";
 
 import { PermissionProvider } from "@/auth/PermissionContext";
+import MultiMonitorDetector from "@/components/proctoring/MultiMonitorDetector";
 
 const queryClient = new QueryClient();
 
@@ -50,7 +51,7 @@ const App = () => (
               <Route path="/dashboard/domains" element={<Domains />} />
               <Route path="/dashboard/admin" element={<Admin />} />
               <Route path="/test/:token" element={<TestLanding />} />
-              <Route path="/test/:token/take" element={<TakeTest />} />
+              <Route path="/test/:token/take" element={<MultiMonitorDetector><TakeTest /></MultiMonitorDetector>} />
               <Route path="/test/:token/complete" element={<TestComplete />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

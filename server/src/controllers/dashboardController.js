@@ -8,18 +8,21 @@ export const getStats = async (req, res, next) => {
         // 1. Total Questions (Scoped filtering)
         let questionsRes;
         if (roles.includes('SUPER_ADMIN')) {
-            questionsRes = await query('SELECT COUNT(*) FROM questions');
+            questionsRes = await query('SELECT COUNT(*) FROM questions WHERE is_deleted = false');
         } else if (roles.includes('ADMIN')) {
             questionsRes = await query(
-                'SELECT COUNT(*) FROM questions WHERE (tenant_id = $1 OR tenant_id IS NULL)',
+                `SELECT COUNT(*) FROM questions 
+                 WHERE (split_part(created_by, '_', 1) = $1 OR created_by IS NULL)
+                 AND is_deleted = false`,
                 [tenantId]
             );
         } else {
             // MANAGER or RECRUITER
             questionsRes = await query(
                 `SELECT COUNT(*) FROM questions 
-                 WHERE (tenant_id = $1 OR tenant_id IS NULL)
-                 AND (created_by_manager_id = $2 OR domain_id = $3 OR tenant_id IS NULL)`,
+                 WHERE (split_part(created_by, '_', 1) = $1 OR created_by IS NULL)
+                 AND (created_by_manager_id = $2 OR domain_id = $3 OR created_by IS NULL)
+                 AND is_deleted = false`,
                 [tenantId, managerId || actorId, userDomainId]
             );
         }

@@ -294,6 +294,30 @@ export default function CandidateDetailDialog({ candidate, open, onOpenChange }:
                     </div>
                   </td>
                 </tr>
+                <tr>
+                  <td style={{ paddingTop: '16px', verticalAlign: 'top' }}>
+                    <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Test Date</p>
+                    <p style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
+                      {candidate.started_at || candidate.created_at ? format(new Date(candidate.started_at || candidate.created_at), 'MMM dd, yyyy') : 'N/A'}
+                    </p>
+                  </td>
+                  <td colSpan={2} style={{ paddingTop: '16px', verticalAlign: 'top', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '32px' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Start Time</p>
+                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
+                          {candidate.started_at || candidate.created_at ? format(new Date(candidate.started_at || candidate.created_at), 'hh:mm:ss a') : 'N/A'}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>End Time</p>
+                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
+                          {candidate.completed_at ? format(new Date(candidate.completed_at), 'hh:mm:ss a') : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
               </tbody>
             </table>
             <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)', marginTop: '12px', paddingTop: '8px' }}>

@@ -39,8 +39,11 @@ export const getResults = async (req, res, next) => {
                 incorrectAnswers: r.incorrect_answers,
                 unansweredQuestions: r.unanswered_questions,
                 tabSwitchCount: r.tab_switch_count || 0,
+                startedAt: r.started_at,
                 completedAt: r.completed_at,
-                calculatedAt: r.calculated_at
+                calculatedAt: r.calculated_at,
+                photoIdUrl: r.photo_id_url,
+                ipAddress: r.ip_address
             }))
         });
     } catch (error) {
@@ -105,8 +108,11 @@ export const getResultsByAssessment = async (req, res, next) => {
                 incorrectAnswers: r.incorrect_answers,
                 unansweredQuestions: r.unanswered_questions,
                 tabSwitchCount: r.tab_switch_count || 0,
+                startedAt: r.started_at,
                 completedAt: r.completed_at,
-                calculatedAt: r.calculated_at
+                calculatedAt: r.calculated_at,
+                photoIdUrl: r.photo_id_url,
+                ipAddress: r.ip_address
             }))
         });
     } catch (error) {
@@ -134,6 +140,38 @@ export const getDetailedResult = async (req, res, next) => {
                 answeredAt: r.answered_at,
                 isAnswered: r.is_answered
             }))
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getDetailedResultsByAssessment = async (req, res, next) => {
+    try {
+        const { assessmentId } = req.params;
+        const responses = await Result.findAllDetailedResponsesByAssessmentId(assessmentId);
+
+        // Group responses by candidateId
+        const grouped = {};
+        responses.forEach(r => {
+            if (!grouped[r.candidate_id]) {
+                grouped[r.candidate_id] = [];
+            }
+            grouped[r.candidate_id].push({
+                questionText: r.question_text,
+                options: r.options,
+                correctAnswer: r.correct_answer,
+                selectedAnswer: r.selected_answer,
+                domain: r.domain,
+                difficulty: r.difficulty,
+                answeredAt: r.answered_at,
+                isAnswered: r.is_answered
+            });
+        });
+
+        res.json({
+            success: true,
+            data: grouped
         });
     } catch (error) {
         next(error);

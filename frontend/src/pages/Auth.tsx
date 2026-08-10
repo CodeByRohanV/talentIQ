@@ -27,12 +27,12 @@ export default function Auth() {
     // Get current host and redirect back to Scaloz Workspace
     const hostname = window.location.hostname;
     let targetUrl = '';
-    if (hostname !== 'localhost' && !/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+    if (hostname !== 'localhost' && !hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
       const protocol = window.location.protocol;
-      const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/\bskillz\b/gi, 'workspace');
+      const targetHost = hostname.replace(/\bskillz\b/gi, 'apps');
       targetUrl = `${protocol}//${targetHost}/Home`;
     } else {
-      targetUrl = 'https://workspacetest.scaloz.com/Home';
+      targetUrl = 'https://apps.scaloz.com/Home';
     }
 
     window.location.href = targetUrl;
@@ -57,13 +57,13 @@ export default function Auth() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC] p-4 text-center selection:bg-[#2563EB]/10">
       <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.08)]">
         <div className="bg-[#2563EB] h-1.5 w-full top-0 left-0 absolute rounded-t-2xl" />
-        <img src="/logo.png" alt="skillz" className="w-16 h-16 mx-auto mb-6 rounded-xl shadow-md border border-slate-100" />
-
+        <img src="/logo.png" alt="TalentiQ" className="w-16 h-16 mx-auto mb-6 rounded-xl shadow-md border border-slate-100" />
+        
         <h2 className="text-2xl font-black text-[#0F172A] mb-3">Manual Login Disabled</h2>
         <p className="text-slate-500 font-semibold mb-6 leading-relaxed">
-          skillz is integrated with the Scaloz Workspace. Manual login, forgot password, and reset password pages are disabled.
+          TalentiQ is integrated with the Scaloz Workspace. Manual login, forgot password, and reset password pages are disabled.
         </p>
-
+        
         <div className="inline-flex items-center gap-2 text-sm font-black text-[#2563EB] bg-[#2563EB]/5 px-4 py-2 rounded-lg animate-pulse">
           Redirecting to Scaloz Workspace...
         </div>

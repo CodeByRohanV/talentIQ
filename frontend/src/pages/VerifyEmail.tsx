@@ -37,8 +37,8 @@ export default function VerifyEmail() {
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/20 px-4">
             <div className="w-full max-w-md animate-fade-in">
                 <div className="flex flex-col items-center mb-8">
-                    <img src="/logo.png" alt="skillz" className="w-14 h-14 rounded-xl mb-4 shadow-lg shadow-primary/25" />
-                    <h1 className="text-2xl font-bold text-gradient">skillz</h1>
+                    <img src="/logo.png" alt="TalentiQ" className="w-14 h-14 rounded-xl mb-4 shadow-lg shadow-primary/25" />
+                    <h1 className="text-2xl font-bold text-gradient">TalentiQ</h1>
                 </div>
 
                 <Card className="border-border/50 shadow-xl overflow-hidden">
