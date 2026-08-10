@@ -86,13 +86,24 @@ export const requireAuth = async (req, res, next) => {
         }
 
         // Fetch managerId and domainId dynamically from DB
-        const userRes = await query('SELECT manager_id, domain_id FROM users WHERE id = $1', [userId]);
-        const dbUser = userRes.rows[0] || {};
-        const managerId = dbUser.manager_id || null;
-        const domainId = dbUser.domain_id || null;
+        let managerId = null;
+        let domainId = null;
+        let roles = [];
+        let permissions = [];
 
-        // Resolve permissions from DB (not JWT)
-        const { roles, permissions } = await permissionService.getUserRolesAndPermissions(userId, tenantId);
+        // Only query DB for extra user fields and permissions if the user actually exists
+        // (dbUserId is set) OR if the provided userId is already a valid UUID (standard local login).
+        if (dbUserId || isUUID(userId)) {
+            const userRes = await query('SELECT manager_id, domain_id FROM users WHERE id = $1', [userId]);
+            const dbUser = userRes.rows[0] || {};
+            managerId = dbUser.manager_id || null;
+            domainId = dbUser.domain_id || null;
+
+            // Resolve permissions from DB (not JWT)
+            const resolved = await permissionService.getUserRolesAndPermissions(userId, tenantId);
+            roles = resolved.roles;
+            permissions = resolved.permissions;
+        }
 
         // Attach to request as req.auth (includes real SSO identity for JIT provisioning)
         req.auth = {
