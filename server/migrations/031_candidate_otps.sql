@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS candidate_otps (
     id SERIAL PRIMARY KEY,
-    assessment_id INTEGER REFERENCES assessments(id) ON DELETE CASCADE,
+    assessment_id BIGINT REFERENCES assessments(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     otp VARCHAR(6) NOT NULL,
