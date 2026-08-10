@@ -184,27 +184,24 @@ export const getMe = async (req, res, next) => {
             // Default to SUPER_ADMIN for workspace-launched SSO users
             const roleName = 'SUPER_ADMIN';
 
-            // Create the user with a random password (they will always log in via SSO)
-            // Let Postgres generate the UUID for id automatically.
-            const randomPassword = await hashPassword(Math.random().toString(36).slice(-12));
-
-            const insertRes = await query(
-                `INSERT INTO users (email, password_hash, full_name, employee_id, must_change_password, is_verified)
-                 VALUES ($1, $2, $3, $4, false, true)
-                 ON CONFLICT (employee_id) DO NOTHING
-                 RETURNING id`,
-                [realEmail, randomPassword, realName, userId]
-            );
+            let newUserId = null;
+            const existRes = await query(`SELECT id FROM users WHERE email = $1 OR employee_id = $2`, [realEmail, userId]);
             
-            let newUserId = userId;
-            if (insertRes.rows.length > 0) {
-                newUserId = insertRes.rows[0].id;
+            if (existRes.rows.length > 0) {
+                // User already exists (manually created via email, or previously SSO provisioned)
+                newUserId = existRes.rows[0].id;
+                // Ensure their employee_id is linked to their SSO identity
+                await query(`UPDATE users SET employee_id = $1 WHERE id = $2`, [userId, newUserId]);
             } else {
-                // If it conflicted but didn't return, fetch the existing UUID
-                const existRes = await query(`SELECT id FROM users WHERE email = $1 OR employee_id = $2`, [realEmail, userId]);
-                if (existRes.rows.length > 0) {
-                    newUserId = existRes.rows[0].id;
-                }
+                // Safely insert new user without relying on ON CONFLICT constraints
+                const randomPassword = await hashPassword(Math.random().toString(36).slice(-12));
+                const insertRes = await query(
+                    `INSERT INTO users (email, password_hash, full_name, employee_id, must_change_password, is_verified)
+                     VALUES ($1, $2, $3, $4, false, true)
+                     RETURNING id`,
+                    [realEmail, randomPassword, realName, userId]
+                );
+                newUserId = insertRes.rows[0].id;
             }
 
             // Assign SUPER_ADMIN role

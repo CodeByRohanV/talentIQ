@@ -33,7 +33,7 @@ export const requireAuth = async (req, res, next) => {
         let userId = decoded.userId;
 
         // Extract real identity from Scaloz JWT claims
-        const ssoEmail = decoded.sub && decoded.sub.includes('@') ? decoded.sub : null;
+        const ssoEmail = decoded.email || (decoded.sub && decoded.sub.includes('@') ? decoded.sub : null);
         const firstName = decoded.firstName || null;
         const lastName = decoded.lastName || null;
         const ssoName = decoded.name ||
