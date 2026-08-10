@@ -67,7 +67,9 @@ export default function Index() {
           </div>
           <h2 className="text-2xl font-bold text-slate-900 mb-4">Service Unavailable</h2>
           <p className="text-slate-600 mb-8 font-medium">
-            We're currently unable to connect to the backend API. The server might be deploying or temporarily down (502 Bad Gateway).
+            We're currently unable to load your profile. The server returned an error: <br/>
+            <strong>{initError?.message || 'Unknown Error'} (Status: {initError?.response?.status || 'N/A'})</strong><br/>
+            This could be a deployment issue, a backend crash, or an invalid SSO token.
           </p>
           <Button onClick={() => window.location.reload()} className="w-full bg-[#2563EB] hover:bg-[#1D4ED8]">
             Try Again

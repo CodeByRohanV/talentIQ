@@ -97,31 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.removeItem('auth_token');
       setUser(null);
 
-      // Only redirect back to Scaloz Workspace on a hard 401 (token rejected by the server).
-      // Network errors, 5xx server errors, or CORS failures should NOT loop-redirect the user —
-      // they're infrastructure issues, not auth failures.
-      const status = error?.response?.status;
-      const isAuthRejection = status === 401 || status === 403;
-
-      if (isAuthRejection) {
-        const hostname = window.location.hostname;
-        const isLocal = hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.match(/^\d+\.\d+\.\d+\.\d+$/);
-        if (isLocal) {
-          window.location.href = 'http://localhost:3001/Home';
-        } else {
-          const protocol = window.location.protocol;
-          const tenantUrl = import.meta.env.VITE_TENANT_URL;
-          if (tenantUrl) {
-            window.location.href = `${tenantUrl}/Home`;
-          } else {
-            const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace');
-            window.location.href = `${protocol}//${targetHost}/Home`;
-          }
-        }
-      } else {
-        console.warn('[SSO] fetchUser failed with non-auth error (status:', status, ') — not redirecting to workspace');
-        setInitError(error);
-      }
+      // We removed the auto-redirect for 401/403 to prevent infinite redirect loops.
+      // Now, ANY error during fetchUser will set initError and show the error screen.
+      console.warn('[SSO] fetchUser failed with error (status:', error?.response?.status, ')');
+      setInitError(error);
     } finally {
       setLoading(false);
     }
