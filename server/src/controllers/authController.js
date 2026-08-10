@@ -197,7 +197,7 @@ export const getMe = async (req, res, next) => {
             const insertRes = await query(
                 `INSERT INTO users (email, password_hash, full_name, employee_id, must_change_password, is_verified)
                  VALUES ($1, $2, $3, $4, false, true)
-                 ON CONFLICT (email) DO NOTHING
+                 ON CONFLICT (employee_id) DO NOTHING
                  RETURNING id`,
                 [realEmail, randomPassword, realName, userId]
             );
