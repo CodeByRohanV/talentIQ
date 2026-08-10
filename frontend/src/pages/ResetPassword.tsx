@@ -23,8 +23,9 @@ export default function ResetPassword() {
     let targetUrl = '';
     if (hostname !== 'localhost' && !hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
       const protocol = window.location.protocol;
-      const targetHost = hostname.replace(/\bskillz\b/gi, 'apps');
-      targetUrl = `${protocol}//${targetHost}/Home`;
+      const tenantUrl = import.meta.env.VITE_TENANT_URL;
+      const targetHost = hostname.replace(/skillztest|skillz|talentiq/gi, 'apps');
+      targetUrl = tenantUrl ? `${tenantUrl}/Home` : `${protocol}//${targetHost}/Home`;
     } else {
       targetUrl = 'http://localhost:3001/Home';
     }

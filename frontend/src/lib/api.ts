@@ -85,8 +85,13 @@ api.interceptors.response.use(
                 if (isLocal) {
                     window.location.href = 'http://localhost:3001/Home';
                 } else {
-                    const targetHost = hostname.replace(/\bskillz\b/gi, 'apps');
+                const tenantUrl = import.meta.env.VITE_TENANT_URL;
+                if (tenantUrl) {
+                    window.location.href = `${tenantUrl}/Home`;
+                } else {
+                    const targetHost = hostname.replace(/skillztest|skillz|talentiq/gi, 'apps');
                     window.location.href = `${window.location.protocol}//${targetHost}/Home`;
+                }
                 }
             }
  

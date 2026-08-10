@@ -108,8 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           window.location.href = 'http://localhost:3001/Home';
         } else {
           const protocol = window.location.protocol;
-          const targetHost = hostname.replace(/\btalentiq\b/gi, 'apps');
-          window.location.href = `${protocol}//${targetHost}/Home`;
+          const tenantUrl = import.meta.env.VITE_TENANT_URL;
+          if (tenantUrl) {
+            window.location.href = `${tenantUrl}/Home`;
+          } else {
+            const targetHost = hostname.replace(/skillztest|skillz|talentiq/gi, 'apps');
+            window.location.href = `${protocol}//${targetHost}/Home`;
+          }
         }
       } else {
         console.warn('[SSO] fetchUser failed with non-auth error (status:', status, ') — not redirecting to workspace');
@@ -168,8 +173,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isLocal) {
       window.location.href = `http://${hostname}:3001/Home`;
     } else {
-      const targetHost = hostname.replace(/\btalentiq\b/gi, 'apps');
-      window.location.href = `${protocol}//${targetHost}/Home`;
+      const tenantUrl = import.meta.env.VITE_TENANT_URL;
+      if (tenantUrl) {
+        window.location.href = `${tenantUrl}/Home`;
+      } else {
+        const targetHost = hostname.replace(/skillztest|skillz|talentiq/gi, 'apps');
+        window.location.href = `${protocol}//${targetHost}/Home`;
+      }
     }
   };
 

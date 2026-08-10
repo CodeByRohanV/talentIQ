@@ -27,12 +27,13 @@ export default function Auth() {
     // Get current host and redirect back to Scaloz Workspace
     const hostname = window.location.hostname;
     let targetUrl = '';
+    const tenantUrl = import.meta.env.VITE_TENANT_URL;
     if (hostname !== 'localhost' && !hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
       const protocol = window.location.protocol;
-      const targetHost = hostname.replace(/\bskillz\b/gi, 'apps');
+      const targetHost = hostname.replace(/skillztest|skillz|talentiq/gi, 'apps');
       targetUrl = `${protocol}//${targetHost}/Home`;
     } else {
-      targetUrl = 'https://apps.scaloz.com/Home';
+      targetUrl = tenantUrl ? `${tenantUrl}/Home` : 'https://apps.scaloz.com/Home';
     }
 
     window.location.href = targetUrl;
