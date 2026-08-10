@@ -208,10 +208,16 @@ export const getMe = async (req, res, next) => {
             }
 
             // Assign SUPER_ADMIN role
-            const roleRes = await query(
-                `SELECT id FROM roles WHERE name = $1 AND (tenant_id = $2 OR tenant_id IS NULL) ORDER BY tenant_id NULLS LAST LIMIT 1`,
-                [roleName, tenantId]
-            );
+            let roleQuery = `SELECT id FROM roles WHERE name = $1 AND tenant_id IS NULL ORDER BY tenant_id NULLS LAST LIMIT 1`;
+            let roleParams = [roleName];
+            
+            const isTenantUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(tenantId);
+            if (isTenantUUID) {
+                roleQuery = `SELECT id FROM roles WHERE name = $1 AND (tenant_id = $2 OR tenant_id IS NULL) ORDER BY tenant_id NULLS LAST LIMIT 1`;
+                roleParams = [roleName, tenantId];
+            }
+            
+            const roleRes = await query(roleQuery, roleParams);
             if (roleRes.rows.length > 0) {
                 await query(
                     `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
