@@ -105,13 +105,8 @@ export const requireAuth = async (req, res, next) => {
             permissions = resolved.permissions || [];
         }
 
-        // Failsafe: Ensure Workspace SSO users always get SUPER_ADMIN access 
-        // even if the database insertion (JIT provisioning) failed silently.
-        const isSsoUser = ssoEmail || (tenantId && tenantId !== 'null');
-        if (isSsoUser) {
-            if (!roles.includes('SUPER_ADMIN')) roles.push('SUPER_ADMIN');
-            if (!permissions.includes('all')) permissions.push('all');
-        }
+        // Extract Scaloz role from JWT (if present) to support JIT role mapping
+        const ssoRole = decoded.role || (decoded.realm_access && decoded.realm_access.roles ? decoded.realm_access.roles[0] : null);
 
         // Attach to request as req.auth (includes real SSO identity for JIT provisioning)
         req.auth = {
@@ -124,6 +119,7 @@ export const requireAuth = async (req, res, next) => {
             permissions,
             ssoEmail,      // real email from Scaloz JWT (e.g. ankitha.s@xevyte.com)
             ssoName,       // real full name from Scaloz JWT
+            ssoRole,       // Role from Scaloz JWT (e.g. "Admin", "Employee")
             firstName,
             lastName
         };

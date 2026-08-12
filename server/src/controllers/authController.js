@@ -228,42 +228,54 @@ export const getMe = async (req, res, next) => {
             }
         }
 
-        // Ensure the user has roles. If they have no roles (which happens during SSO JIT),
-        // or if they are explicitly identified as an SSO user via ssoEmail or tenantId presence,
-        // we grant them SUPER_ADMIN to ensure they are not locked out of their workspace.
+        // JIT Role Provisioning based on Scaloz RBAC
+        // Scaloz sends the role in the JWT (e.g. 'Admin', 'Manager', 'Employee')
+        // We map this to Skillz roles if the user has no roles yet, or to keep them in sync.
         const isSsoUser = req.auth.ssoEmail || (req.auth.tenantId && req.auth.tenantId !== 'null');
         const hasNoRoles = !freshRoles || freshRoles.length === 0;
         
-        if (user && (isSsoUser || hasNoRoles)) {
+        if (user && isSsoUser && (hasNoRoles || req.auth.ssoRole)) {
             const { query } = await import('../config/database.js');
-            const roleName = 'SUPER_ADMIN';
             
-            let roleQuery = `SELECT id FROM roles WHERE name = $1 AND tenant_id IS NULL ORDER BY tenant_id NULLS LAST LIMIT 1`;
-            let roleParams = [roleName];
+            // Map Scaloz role to Skillz role
+            const roleMapping = {
+                'Admin':       'SUPER_ADMIN',
+                'Manager':     'MANAGER',
+                'Recruiter':   'RECRUITER',
+                'Employee':    'RECRUITER',
+                'Collaborator': 'COLLABORATOR'
+            };
             
-            // Check if tenantId is a valid UUID
-            const isTenantUUID = req.auth.tenantId && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.auth.tenantId);
-            if (isTenantUUID) {
-                roleQuery = `SELECT id FROM roles WHERE name = $1 AND (tenant_id = $2 OR tenant_id IS NULL) ORDER BY tenant_id NULLS LAST LIMIT 1`;
-                roleParams = [roleName, req.auth.tenantId];
-            }
-            
-            const roleRes = await query(roleQuery, roleParams);
-            if (roleRes.rows.length > 0) {
-                try {
-                    await query(
-                        `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-                        [user.id, roleRes.rows[0].id]
-                    );
-                } catch (e) {
-                    console.error('[SSO] Error assigning SUPER_ADMIN role:', e);
-                }
-            }
+            // Default to RECRUITER if role is not recognized or missing
+            const skillzRoleName = req.auth.ssoRole ? (roleMapping[req.auth.ssoRole] || 'RECRUITER') : 'SUPER_ADMIN'; 
+            // Wait, if no ssoRole is provided in JWT but they have no roles, the original logic defaulted to SUPER_ADMIN for tenant owners.
+            // We should just use RECRUITER as a safe default for employees, but since we don't know who is an owner without a role,
+            // we rely on Scaloz sending the role. If ssoRole is undefined, we'll assume they are a regular employee (RECRUITER) to be safe.
+            const roleName = req.auth.ssoRole ? (roleMapping[req.auth.ssoRole] || 'RECRUITER') : (hasNoRoles ? 'RECRUITER' : null);
 
-            // Always fetch fresh roles and permissions after potential role update
-            const fresh = await permissionService.getUserRolesAndPermissions(user.id, req.auth.tenantId);
-            freshRoles = fresh.roles;
-            freshPermissions = fresh.permissions;
+            if (roleName) {
+                // Query only global system roles to prevent UUID casting errors 
+                // in case the test environment's roles.tenant_id is still a UUID column.
+                let roleQuery = `SELECT id FROM roles WHERE name = $1 AND tenant_id IS NULL LIMIT 1`;
+                let roleParams = [roleName];
+                
+                const roleRes = await query(roleQuery, roleParams);
+                if (roleRes.rows.length > 0) {
+                    try {
+                        await query(
+                            `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+                            [user.id, roleRes.rows[0].id]
+                        );
+                    } catch (e) {
+                        console.error('[SSO] Error assigning role:', e);
+                    }
+                }
+
+                // Always fetch fresh roles and permissions after potential role update
+                const fresh = await permissionService.getUserRolesAndPermissions(user.id, req.auth.tenantId);
+                freshRoles = fresh.roles;
+                freshPermissions = fresh.permissions;
+            }
         }
 
         if (!user) {
