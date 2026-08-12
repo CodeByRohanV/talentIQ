@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export default function Index() {
-  const { user, loading, initError } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,7 +35,7 @@ export default function Index() {
         ? 'http://localhost:3001/Home'
         : (import.meta.env.VITE_TENANT_URL ? `${import.meta.env.VITE_TENANT_URL}/Home` : `${protocol}//${hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace')}/Home`);
 
-    if (!loading && !initError) {
+    if (!loading) {
       if (user) {
         // Authenticated — go to dashboard
         navigate('/dashboard');
@@ -44,46 +44,13 @@ export default function Index() {
         window.location.href = workspaceUrl;
       }
     }
-  }, [user, loading, initError, navigate]);
+  }, [user, loading, navigate]);
 
   // Show loader during initial load or while redirecting to avoid flickering the landing page
-  if (loading || (!user && !initError) || user) {
-    // If initError is present, we want to skip the loader and render the error UI below.
-    if (!initError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
-          <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
-        </div>
-      );
-    }
-  }
-
-  if (initError) {
+  if (loading || !user || user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] px-6 text-center">
-        <div className="max-w-md bg-white p-8 rounded-2xl shadow-xl border border-red-100">
-          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <ShieldCheck className="w-8 h-8" />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-4">Service Unavailable</h2>
-          <p className="text-slate-600 mb-8 font-medium">
-            We're currently unable to load your profile. The server returned an error: <br/>
-            <strong>{initError?.message || 'Unknown Error'} (Status: {initError?.response?.status || 'N/A'})</strong><br/>
-            This could be a deployment issue, a backend crash, or an invalid SSO token.
-          </p>
-          <Button onClick={() => window.location.reload()} className="w-full bg-[#2563EB] hover:bg-[#1D4ED8]">
-            Try Again
-          </Button>
-          <Button variant="outline" onClick={() => {
-            const hostname = window.location.hostname;
-            const workspaceUrl = (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost'))
-              ? 'http://localhost:3001/Home'
-              : (import.meta.env.VITE_TENANT_URL ? `${import.meta.env.VITE_TENANT_URL}/Home` : `${window.location.protocol}//${hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace')}/Home`);
-            window.location.href = workspaceUrl;
-          }} className="w-full mt-3">
-            Back to Dashboard
-          </Button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#2563EB]" />
       </div>
     );
   }
@@ -135,9 +102,9 @@ export default function Index() {
           </div>
           <div className="relative group lg:block hidden">
             <div className="absolute inset-0 bg-[#2563EB]/5 blur-[100px] rounded-full opacity-40 transition-all duration-700"></div>
-            <img 
-              src="/images/hero_mockup.png" 
-              alt="Dashboard Preview" 
+            <img
+              src="/images/hero_mockup.png"
+              alt="Dashboard Preview"
               className="relative z-10 w-full rounded-2xl border border-slate-200 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.05)] animate-in fade-in slide-in-from-right-12 duration-1000"
             />
           </div>
@@ -241,5 +208,7 @@ export default function Index() {
         </div>
       </footer>
     </div>
+  );
+}
   );
 }

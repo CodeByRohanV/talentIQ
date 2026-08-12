@@ -107,6 +107,9 @@ export default function Dashboard() {
     },
   ];
 
+  const canWriteQuestions = user?.permissions?.includes('create_questions') || user?.permissions?.includes('all') || user?.roles?.includes('SUPER_ADMIN');
+  const canWriteAssessments = user?.permissions?.includes('create_assessments') || user?.permissions?.includes('all') || user?.roles?.includes('SUPER_ADMIN');
+
   return (
     <DashboardLayout>
       <div className="p-6 lg:p-8 space-y-8">
@@ -121,14 +124,18 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => navigate('/dashboard/questions?upload=true')}>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Questions
-            </Button>
-            <Button onClick={() => navigate('/dashboard/assessments/new')}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Assessment
-            </Button>
+            {canWriteQuestions && (
+              <Button variant="outline" onClick={() => navigate('/dashboard/questions?upload=true')}>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Questions
+              </Button>
+            )}
+            {canWriteAssessments && (
+              <Button onClick={() => navigate('/dashboard/assessments/new')}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Assessment
+              </Button>
+            )}
           </div>
         </div>
 
@@ -162,49 +169,53 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <MagicCard className="flex-col">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5 text-primary" />
-                Import Questions
-              </CardTitle>
-              <CardDescription>
-                Upload a CSV file with your aptitude questions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Quickly populate your question bank by importing questions from a CSV file.
-                Supports all four domains: Behavioral, Arithmetic, Logical Reasoning, and Quantitative Aptitude.
-              </p>
-              <Button variant="outline" onClick={() => navigate('/dashboard/questions?upload=true')}>
-                Go to Question Bank
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardContent>
-          </MagicCard>
+          {canWriteQuestions && (
+            <MagicCard className="flex-col">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="h-5 w-5 text-primary" />
+                  Import Questions
+                </CardTitle>
+                <CardDescription>
+                  Upload a CSV file with your aptitude questions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Quickly populate your question bank by importing questions from a CSV file.
+                  Supports all four domains: Behavioral, Arithmetic, Logical Reasoning, and Quantitative Aptitude.
+                </p>
+                <Button variant="outline" onClick={() => navigate('/dashboard/questions?upload=true')}>
+                  Go to Question Bank
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </MagicCard>
+          )}
 
-          <MagicCard className="flex-col">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5 text-primary" />
-                Create Assessment
-              </CardTitle>
-              <CardDescription>
-                Build a new aptitude test for your candidates
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Configure question distribution, set time limits, define passing thresholds,
-                and generate a shareable link for candidates.
-              </p>
-              <Button onClick={() => navigate('/dashboard/assessments/new')}>
-                Create New Assessment
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardContent>
-          </MagicCard>
+          {canWriteAssessments && (
+            <MagicCard className="flex-col">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5 text-primary" />
+                  Create Assessment
+                </CardTitle>
+                <CardDescription>
+                  Build a new aptitude test for your candidates
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Configure question distribution, set time limits, define passing thresholds,
+                  and generate a shareable link for candidates.
+                </p>
+                <Button onClick={() => navigate('/dashboard/assessments/new')}>
+                  Create New Assessment
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </MagicCard>
+          )}
         </div>
 
         {/* Admin Quick Actions */}

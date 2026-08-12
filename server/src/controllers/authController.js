@@ -204,31 +204,8 @@ export const getMe = async (req, res, next) => {
                 newUserId = insertRes.rows[0].id;
             }
 
-            // Assign SUPER_ADMIN role
-            let roleQuery = `SELECT id FROM roles WHERE name = $1 AND tenant_id IS NULL ORDER BY tenant_id NULLS LAST LIMIT 1`;
-            let roleParams = [roleName];
-            
-            const isTenantUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(tenantId);
-            if (isTenantUUID) {
-                roleQuery = `SELECT id FROM roles WHERE name = $1 AND (tenant_id = $2 OR tenant_id IS NULL) ORDER BY tenant_id NULLS LAST LIMIT 1`;
-                roleParams = [roleName, tenantId];
-            }
-            
-            const roleRes = await query(roleQuery, roleParams);
-            if (roleRes.rows.length > 0) {
-                await query(
-                    `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-                    [newUserId, roleRes.rows[0].id]
-                );
-            }
-
             console.log(`[SSO] Auto-provisioned/refreshed user from JWT: ${newUserId} → ${realEmail} (${realName})`);
             user = await User.findUserById(newUserId);
-
-            // Re-fetch fresh roles and permissions after provisioning
-            const fresh = await permissionService.getUserRolesAndPermissions(newUserId, tenantId);
-            freshRoles = fresh.roles;
-            freshPermissions = fresh.permissions;
         } else if (user && (user.email?.endsWith('@sso.local') || !user.full_name || user.full_name === user.employee_id || (req.auth.ssoEmail && req.auth.ssoEmail !== user.email))) {
             // User already exists but has stale/fake SSO data — update on this login
             const { query } = await import('../config/database.js');
@@ -249,6 +226,35 @@ export const getMe = async (req, res, next) => {
                 console.log(`[SSO] Updated stale profile for ${user.id}: email=${realEmail}, name=${realName}`);
                 user = await User.findUserById(user.id);
             }
+        }
+
+        // Workspace SSO always grants SUPER_ADMIN to ensure tenant owners have full access
+        if (user && req.auth.ssoEmail) {
+            const { query } = await import('../config/database.js');
+            const roleName = 'SUPER_ADMIN';
+            const tenantId = req.auth.tenantId;
+
+            let roleQuery = `SELECT id FROM roles WHERE name = $1 AND tenant_id IS NULL ORDER BY tenant_id NULLS LAST LIMIT 1`;
+            let roleParams = [roleName];
+            
+            const isTenantUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(tenantId);
+            if (isTenantUUID) {
+                roleQuery = `SELECT id FROM roles WHERE name = $1 AND (tenant_id = $2 OR tenant_id IS NULL) ORDER BY tenant_id NULLS LAST LIMIT 1`;
+                roleParams = [roleName, tenantId];
+            }
+            
+            const roleRes = await query(roleQuery, roleParams);
+            if (roleRes.rows.length > 0) {
+                await query(
+                    `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+                    [user.id, roleRes.rows[0].id]
+                );
+            }
+
+            // Always fetch fresh roles and permissions after potential role update
+            const fresh = await permissionService.getUserRolesAndPermissions(user.id, tenantId);
+            freshRoles = fresh.roles;
+            freshPermissions = fresh.permissions;
         }
 
         if (!user) {
