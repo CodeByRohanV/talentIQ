@@ -104,9 +104,8 @@ export const syncUser = async (req, res, next) => {
 
         // Find the matching role in skillz (system roles have NULL tenant_id)
         const roleResult = await query(
-            `SELECT id FROM roles WHERE name = $1 AND (tenant_id IS NULL OR tenant_id = $2)
-             ORDER BY tenant_id NULLS LAST LIMIT 1`,
-            [skillzRoleName, resolvedTenantId]
+            `SELECT id FROM roles WHERE name = $1 AND tenant_id IS NULL LIMIT 1`,
+            [skillzRoleName]
         );
 
         if (roleResult.rows.length > 0) {

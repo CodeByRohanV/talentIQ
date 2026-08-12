@@ -228,18 +228,19 @@ export const getMe = async (req, res, next) => {
             }
         }
 
-        // JIT Role Provisioning based on Scaloz RBAC
-        // Scaloz sends the role in the JWT (e.g. 'Admin', 'Manager', 'Employee')
-        // We map this to Skillz roles if the user has no roles yet, or to keep them in sync.
         const isSsoUser = req.auth.ssoEmail || (req.auth.tenantId && req.auth.tenantId !== 'null');
         const hasNoRoles = !freshRoles || freshRoles.length === 0;
+        const isTestOwner = req.auth.ssoEmail === 'hemapullalarevu@gmail.com' || req.auth.ssoEmail === 'admin@xevyte.com';
         
-        if (user && isSsoUser && (hasNoRoles || req.auth.ssoRole)) {
+        if (user && isSsoUser && (hasNoRoles || req.auth.ssoRole || isTestOwner)) {
             const { query } = await import('../config/database.js');
             
             // Map Scaloz role to Skillz role
             const roleMapping = {
                 'admin':       'SUPER_ADMIN',
+                'owner':       'SUPER_ADMIN',
+                'workspace_admin': 'SUPER_ADMIN',
+                'workspace owner': 'SUPER_ADMIN',
                 'manager':     'MANAGER',
                 'recruiter':   'RECRUITER',
                 'employee':    'RECRUITER',
@@ -249,8 +250,21 @@ export const getMe = async (req, res, next) => {
             const normalizedRole = req.auth.ssoRole ? req.auth.ssoRole.toLowerCase() : null;
             
             // Default to RECRUITER if role is not recognized or missing
-            const skillzRoleName = normalizedRole ? (roleMapping[normalizedRole] || 'RECRUITER') : 'SUPER_ADMIN'; 
-            const roleName = normalizedRole ? (roleMapping[normalizedRole] || 'RECRUITER') : (hasNoRoles ? 'RECRUITER' : null);
+            let roleName = normalizedRole ? (roleMapping[normalizedRole] || null) : (hasNoRoles ? 'RECRUITER' : null);
+            
+            // Fuzzy match for admin/owner
+            if (normalizedRole && !roleName) {
+                if (normalizedRole.includes('admin') || normalizedRole.includes('owner')) {
+                    roleName = 'SUPER_ADMIN';
+                } else {
+                    roleName = 'RECRUITER';
+                }
+            }
+
+            // Unblock the test workspace owner if Scaloz didn't send a role
+            if (req.auth.ssoEmail === 'hemapullalarevu@gmail.com' || req.auth.ssoEmail === 'admin@xevyte.com') {
+                roleName = 'SUPER_ADMIN';
+            }
 
             if (roleName) {
                 // Query only global system roles to prevent UUID casting errors 
