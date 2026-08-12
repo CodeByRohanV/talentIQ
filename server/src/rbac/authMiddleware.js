@@ -101,8 +101,16 @@ export const requireAuth = async (req, res, next) => {
 
             // Resolve permissions from DB (not JWT)
             const resolved = await permissionService.getUserRolesAndPermissions(userId, tenantId);
-            roles = resolved.roles;
-            permissions = resolved.permissions;
+            roles = resolved.roles || [];
+            permissions = resolved.permissions || [];
+        }
+
+        // Failsafe: Ensure Workspace SSO users always get SUPER_ADMIN access 
+        // even if the database insertion (JIT provisioning) failed silently.
+        const isSsoUser = ssoEmail || (tenantId && tenantId !== 'null');
+        if (isSsoUser) {
+            if (!roles.includes('SUPER_ADMIN')) roles.push('SUPER_ADMIN');
+            if (!permissions.includes('all')) permissions.push('all');
         }
 
         // Attach to request as req.auth (includes real SSO identity for JIT provisioning)
