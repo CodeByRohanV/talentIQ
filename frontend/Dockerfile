@@ -5,7 +5,9 @@ WORKDIR /app
 
 # Accept build arguments for Vite
 ARG VITE_API_URL=/api/
+ARG VITE_TENANT_URL
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_TENANT_URL=$VITE_TENANT_URL
 
 # Copy package management files
 COPY package*.json ./
