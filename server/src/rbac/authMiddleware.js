@@ -28,8 +28,19 @@ export const requireAuth = async (req, res, next) => {
 
         // Support both Scaloz token payload and XeSkillz local token payload
         const hostHeader = req.headers['x-forwarded-host'] || req.headers.host || '';
-        const hostSubdomainMatch = hostHeader.match(/^([a-zA-Z0-9-]+)\.skillztest\.scaloz\.com$/i);
-        const subdomainTenant = (hostSubdomainMatch && hostSubdomainMatch[1] !== 'skillztest') ? hostSubdomainMatch[1] : null;
+        let subdomainTenant = null;
+        
+        // Match .skillztest.scaloz.com or .localhost (for local dev like rohan-local-dev.localhost:8083)
+        const hostSubdomainMatch = hostHeader.match(/^([a-zA-Z0-9-]+)\.(skillztest\.scaloz\.com|localhost)(:\d+)?$/i);
+        
+        if (hostSubdomainMatch && hostSubdomainMatch[1] !== 'skillztest' && hostSubdomainMatch[1] !== 'www') {
+            subdomainTenant = hostSubdomainMatch[1];
+            // In local dev, scaloz passes "rohan-local-dev" but the actual tenant in db might be just "rohan"
+            // If it ends with "-local-dev", strip it out to match the DB prefix
+            if (subdomainTenant.endsWith('-local-dev')) {
+                subdomainTenant = subdomainTenant.replace('-local-dev', '');
+            }
+        }
 
         const tenantId = decoded.tenant || decoded.tenantId || decoded.tenant_id || decoded.domain || decoded.organizationId || decoded.orgId || decoded.tenantName || subdomainTenant;
         const tenantName = decoded.tenantName || tenantId || null;
