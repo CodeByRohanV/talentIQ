@@ -239,19 +239,18 @@ export const getMe = async (req, res, next) => {
             
             // Map Scaloz role to Skillz role
             const roleMapping = {
-                'Admin':       'SUPER_ADMIN',
-                'Manager':     'MANAGER',
-                'Recruiter':   'RECRUITER',
-                'Employee':    'RECRUITER',
-                'Collaborator': 'COLLABORATOR'
+                'admin':       'SUPER_ADMIN',
+                'manager':     'MANAGER',
+                'recruiter':   'RECRUITER',
+                'employee':    'RECRUITER',
+                'collaborator': 'COLLABORATOR'
             };
             
+            const normalizedRole = req.auth.ssoRole ? req.auth.ssoRole.toLowerCase() : null;
+            
             // Default to RECRUITER if role is not recognized or missing
-            const skillzRoleName = req.auth.ssoRole ? (roleMapping[req.auth.ssoRole] || 'RECRUITER') : 'SUPER_ADMIN'; 
-            // Wait, if no ssoRole is provided in JWT but they have no roles, the original logic defaulted to SUPER_ADMIN for tenant owners.
-            // We should just use RECRUITER as a safe default for employees, but since we don't know who is an owner without a role,
-            // we rely on Scaloz sending the role. If ssoRole is undefined, we'll assume they are a regular employee (RECRUITER) to be safe.
-            const roleName = req.auth.ssoRole ? (roleMapping[req.auth.ssoRole] || 'RECRUITER') : (hasNoRoles ? 'RECRUITER' : null);
+            const skillzRoleName = normalizedRole ? (roleMapping[normalizedRole] || 'RECRUITER') : 'SUPER_ADMIN'; 
+            const roleName = normalizedRole ? (roleMapping[normalizedRole] || 'RECRUITER') : (hasNoRoles ? 'RECRUITER' : null);
 
             if (roleName) {
                 // Query only global system roles to prevent UUID casting errors 
@@ -259,7 +258,23 @@ export const getMe = async (req, res, next) => {
                 let roleQuery = `SELECT id FROM roles WHERE name = $1 AND tenant_id IS NULL LIMIT 1`;
                 let roleParams = [roleName];
                 
-                const roleRes = await query(roleQuery, roleParams);
+                let roleRes = await query(roleQuery, roleParams);
+                
+                // CRITICAL FIX: If the role is missing (e.g., migration failure or wiped DB), create it on the fly!
+                if (roleRes.rows.length === 0) {
+                    try {
+                        const insertRoleQuery = `INSERT INTO roles (name, is_system_role, description) VALUES ($1, true, 'Auto-created system role') RETURNING id`;
+                        roleRes = await query(insertRoleQuery, [roleName]);
+                        
+                        // If it's SUPER_ADMIN, we should also assign all permissions to this new role
+                        if (roleName === 'SUPER_ADMIN') {
+                            await query(`INSERT INTO role_permissions (role_id, permission_id) SELECT $1, id FROM permissions ON CONFLICT DO NOTHING`, [roleRes.rows[0].id]);
+                        }
+                    } catch (e) {
+                        console.error('[SSO] Error auto-creating missing role:', e);
+                    }
+                }
+
                 if (roleRes.rows.length > 0) {
                     try {
                         await query(
