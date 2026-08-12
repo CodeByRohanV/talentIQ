@@ -228,31 +228,40 @@ export const getMe = async (req, res, next) => {
             }
         }
 
-        // Workspace SSO always grants SUPER_ADMIN to ensure tenant owners have full access
-        if (user && req.auth.ssoEmail) {
+        // Ensure the user has roles. If they have no roles (which happens during SSO JIT),
+        // or if they are explicitly identified as an SSO user via ssoEmail or tenantId presence,
+        // we grant them SUPER_ADMIN to ensure they are not locked out of their workspace.
+        const isSsoUser = req.auth.ssoEmail || (req.auth.tenantId && req.auth.tenantId !== 'null');
+        const hasNoRoles = !freshRoles || freshRoles.length === 0;
+        
+        if (user && (isSsoUser || hasNoRoles)) {
             const { query } = await import('../config/database.js');
             const roleName = 'SUPER_ADMIN';
-            const tenantId = req.auth.tenantId;
-
+            
             let roleQuery = `SELECT id FROM roles WHERE name = $1 AND tenant_id IS NULL ORDER BY tenant_id NULLS LAST LIMIT 1`;
             let roleParams = [roleName];
             
-            const isTenantUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(tenantId);
+            // Check if tenantId is a valid UUID
+            const isTenantUUID = req.auth.tenantId && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(req.auth.tenantId);
             if (isTenantUUID) {
                 roleQuery = `SELECT id FROM roles WHERE name = $1 AND (tenant_id = $2 OR tenant_id IS NULL) ORDER BY tenant_id NULLS LAST LIMIT 1`;
-                roleParams = [roleName, tenantId];
+                roleParams = [roleName, req.auth.tenantId];
             }
             
             const roleRes = await query(roleQuery, roleParams);
             if (roleRes.rows.length > 0) {
-                await query(
-                    `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-                    [user.id, roleRes.rows[0].id]
-                );
+                try {
+                    await query(
+                        `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+                        [user.id, roleRes.rows[0].id]
+                    );
+                } catch (e) {
+                    console.error('[SSO] Error assigning SUPER_ADMIN role:', e);
+                }
             }
 
             // Always fetch fresh roles and permissions after potential role update
-            const fresh = await permissionService.getUserRolesAndPermissions(user.id, tenantId);
+            const fresh = await permissionService.getUserRolesAndPermissions(user.id, req.auth.tenantId);
             freshRoles = fresh.roles;
             freshPermissions = fresh.permissions;
         }
