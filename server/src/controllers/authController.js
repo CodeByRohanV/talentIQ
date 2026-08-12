@@ -227,10 +227,10 @@ export const getMe = async (req, res, next) => {
                 user = await User.findUserById(user.id);
             }
         }
-
         const isSsoUser = req.auth.ssoEmail || (req.auth.tenantId && req.auth.tenantId !== 'null');
         const hasNoRoles = !freshRoles || freshRoles.length === 0;
-        const isTestOwner = req.auth.ssoEmail === 'hemapullalarevu@gmail.com' || req.auth.ssoEmail === 'admin@xevyte.com';
+        const testEmail = (req.auth.ssoEmail || user.email || '').toLowerCase();
+        const isTestOwner = testEmail === 'hemapullalarevu@gmail.com' || testEmail === 'admin@xevyte.com';
         
         if (user && isSsoUser && (hasNoRoles || req.auth.ssoRole || isTestOwner)) {
             const { query } = await import('../config/database.js');
@@ -262,7 +262,7 @@ export const getMe = async (req, res, next) => {
             }
 
             // Unblock the test workspace owner if Scaloz didn't send a role
-            if (req.auth.ssoEmail === 'hemapullalarevu@gmail.com' || req.auth.ssoEmail === 'admin@xevyte.com') {
+            if (isTestOwner) {
                 roleName = 'SUPER_ADMIN';
             }
 
@@ -270,41 +270,37 @@ export const getMe = async (req, res, next) => {
                 // Query only global system roles to prevent UUID casting errors 
                 // in case the test environment's roles.tenant_id is still a UUID column.
                 let roleQuery = `SELECT id FROM roles WHERE name = $1 AND tenant_id IS NULL LIMIT 1`;
-                let roleParams = [roleName];
-                
-                let roleRes = await query(roleQuery, roleParams);
-                
-                // CRITICAL FIX: If the role is missing (e.g., migration failure or wiped DB), create it on the fly!
+                let roleRes = await query(roleQuery, [roleName]);
+
+                // Auto-create role if missing
                 if (roleRes.rows.length === 0) {
-                    try {
-                        const insertRoleQuery = `INSERT INTO roles (name, is_system_role, description) VALUES ($1, true, 'Auto-created system role') RETURNING id`;
-                        roleRes = await query(insertRoleQuery, [roleName]);
-                        
-                        // If it's SUPER_ADMIN, we should also assign all permissions to this new role
-                        if (roleName === 'SUPER_ADMIN') {
-                            await query(`INSERT INTO role_permissions (role_id, permission_id) SELECT $1, id FROM permissions ON CONFLICT DO NOTHING`, [roleRes.rows[0].id]);
-                        }
-                    } catch (e) {
-                        console.error('[SSO] Error auto-creating missing role:', e);
+                    const insertRoleQuery = `INSERT INTO roles (name, description, is_system_role) VALUES ($1, $2, true) RETURNING id`;
+                    roleRes = await query(insertRoleQuery, [roleName, `Auto-created ${roleName}`]);
+                    
+                    if (roleName === 'SUPER_ADMIN') {
+                        await query(`INSERT INTO role_permissions (role_id, permission_id) SELECT $1, id FROM permissions ON CONFLICT DO NOTHING`, [roleRes.rows[0].id]);
                     }
                 }
 
                 if (roleRes.rows.length > 0) {
                     try {
+                        if (isTestOwner) {
+                            await query(`DELETE FROM user_roles WHERE user_id = $1`, [user.id]);
+                        }
                         await query(
                             `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
                             [user.id, roleRes.rows[0].id]
                         );
                     } catch (e) {
-                        console.error('[SSO] Error assigning role:', e);
+                        console.error('Silent JIT insertion failure:', e);
                     }
                 }
+            }
 
                 // Always fetch fresh roles and permissions after potential role update
                 const fresh = await permissionService.getUserRolesAndPermissions(user.id, req.auth.tenantId);
                 freshRoles = fresh.roles;
                 freshPermissions = fresh.permissions;
-            }
         }
 
         if (!user) {
