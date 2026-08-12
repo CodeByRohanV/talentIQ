@@ -1,7 +1,7 @@
 import axios from 'axios';
  
 export const resolveApiUrl = (configuredUrl: string): string => {
-  if (!configuredUrl) return 'https://talentiq.scaloz.com/api';
+  if (!configuredUrl) return 'https://skillztest.scaloz.com/api';
   
   if (configuredUrl.includes(',') || configuredUrl.includes('*')) {
     const currentHost = window.location.hostname;
@@ -18,10 +18,10 @@ export const resolveApiUrl = (configuredUrl: string): string => {
         const regex = new RegExp(`^${escaped}$`, 'i');
         
         if (regex.test(currentHost)) {
-          // The current host is a branded tenant subdomain (e.g. pysquare.talentiq.scaloz.com).
-          // The TalentiQ Node.js API runs on the ROOT domain (talentiq.scaloz.com/api), not the subdomain.
+          // The current host is a branded tenant subdomain (e.g. pysquare.skillztest.scaloz.com).
+          // The TalentiQ Node.js API runs on the ROOT domain (skillztest.scaloz.com/api), not the subdomain.
           // Strip the "*." from the wildcard URL to get the root API URL.
-          // e.g. "https://*.talentiq.scaloz.com/api" → "https://talentiq.scaloz.com/api"
+          // e.g. "https://*.skillztest.scaloz.com/api" → "https://skillztest.scaloz.com/api"
           const rootUrl = url.replace('*.', '');   // simple string replace — removes *. anywhere in the URL
           return rootUrl.endsWith('/api') ? rootUrl : `${rootUrl}/api`;
         }
