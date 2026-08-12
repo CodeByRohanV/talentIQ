@@ -27,27 +27,33 @@ export const requireAuth = async (req, res, next) => {
         }
 
         // Support both Scaloz token payload and XeSkillz local token payload
-        const tenantId = decoded.tenant || decoded.tenantId;
-        const tenantName = decoded.tenantName || null;
-        const employeeId = decoded.employeeId;
-        let userId = decoded.userId;
+        const hostHeader = req.headers['x-forwarded-host'] || req.headers.host || '';
+        const hostSubdomainMatch = hostHeader.match(/^([a-zA-Z0-9-]+)\.skillztest\.scaloz\.com$/i);
+        const subdomainTenant = (hostSubdomainMatch && hostSubdomainMatch[1] !== 'skillztest') ? hostSubdomainMatch[1] : null;
+
+        const tenantId = decoded.tenant || decoded.tenantId || decoded.tenant_id || decoded.domain || decoded.organizationId || decoded.orgId || decoded.tenantName || subdomainTenant;
+        const tenantName = decoded.tenantName || tenantId || null;
+        const employeeId = decoded.employeeId || decoded.employee_id;
+        let userId = decoded.userId || decoded.user_id || decoded.id || (decoded.sub && !decoded.sub.includes('@') ? decoded.sub : null);
 
         // Extract real identity from Scaloz JWT claims
-        const ssoEmail = decoded.email || (decoded.sub && decoded.sub.includes('@') ? decoded.sub : null);
-        const firstName = decoded.firstName || null;
-        const lastName = decoded.lastName || null;
+        const ssoEmail = decoded.email || decoded.user_email || (decoded.sub && decoded.sub.includes('@') ? decoded.sub : null);
+        const firstName = decoded.firstName || decoded.first_name || null;
+        const lastName = decoded.lastName || decoded.last_name || null;
         const ssoName = decoded.name ||
             (firstName && lastName ? `${firstName} ${lastName}`.trim() : null) ||
             firstName || null;
 
-        if (!userId && tenantId && employeeId) {
-            const cleanEmpId = employeeId.includes('_')
-                ? employeeId.substring(employeeId.lastIndexOf('_') + 1)
-                : employeeId;
+        if (!userId && tenantId && (employeeId || ssoEmail)) {
+            const empOrEmail = employeeId || ssoEmail;
+            const cleanEmpId = empOrEmail.includes('_')
+                ? empOrEmail.substring(empOrEmail.lastIndexOf('_') + 1)
+                : empOrEmail;
             userId = `${tenantId}_${cleanEmpId}`;
         }
 
         if (!tenantId || !userId) {
+            console.error('[Auth Middleware] Invalid token claims:', { tenantId, userId, decoded });
             return res.status(401).json({
                 success: false,
                 message: 'Invalid token claims'

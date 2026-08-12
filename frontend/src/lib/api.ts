@@ -79,19 +79,22 @@ api.interceptors.response.use(
             // Handle 401 Unauthorized
             if (error.response.status === 401) {
                 sessionStorage.removeItem('auth_token');
-                // Redirect directly back to Scaloz Workspace
-                const hostname = window.location.hostname;
-                const isLocal = hostname === 'localhost' || hostname.endsWith('.localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
-                if (isLocal) {
-                    window.location.href = 'http://localhost:3001/Home';
-                } else {
-                const tenantUrl = import.meta.env.VITE_TENANT_URL;
-                if (tenantUrl) {
-                    window.location.href = `${tenantUrl}/Home`;
-                } else {
-                    const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace');
-                    window.location.href = `${window.location.protocol}//${targetHost}/Home`;
-                }
+                const isInitialSSOLoad = window.location.pathname === '/' || window.location.pathname === '/Home';
+                // Only auto-redirect back if this wasn't during initial SSO authentication attempt
+                if (!isInitialSSOLoad) {
+                    const hostname = window.location.hostname;
+                    const isLocal = hostname === 'localhost' || hostname.endsWith('.localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
+                    if (isLocal) {
+                        window.location.href = 'http://localhost:3001/Home';
+                    } else {
+                        const tenantUrl = import.meta.env.VITE_TENANT_URL;
+                        if (tenantUrl) {
+                            window.location.href = `${tenantUrl}/Home`;
+                        } else {
+                            const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace');
+                            window.location.href = `${window.location.protocol}//${targetHost}/Home`;
+                        }
+                    }
                 }
             }
  
