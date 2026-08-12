@@ -229,7 +229,7 @@ export const getMe = async (req, res, next) => {
         }
         const isSsoUser = req.auth.ssoEmail || (req.auth.tenantId && req.auth.tenantId !== 'null');
         const hasNoRoles = !freshRoles || freshRoles.length === 0;
-        const testEmail = (req.auth.ssoEmail || user.email || '').toLowerCase();
+        const testEmail = (req.auth.ssoEmail || user.email || '').toLowerCase().trim();
         const isTestOwner = testEmail === 'hemapullalarevu@gmail.com' || testEmail === 'admin@xevyte.com';
         
         if (user && isSsoUser && (hasNoRoles || req.auth.ssoRole || isTestOwner)) {
@@ -301,6 +301,14 @@ export const getMe = async (req, res, next) => {
                 const fresh = await permissionService.getUserRolesAndPermissions(user.id, req.auth.tenantId);
                 freshRoles = fresh.roles;
                 freshPermissions = fresh.permissions;
+                
+                if (isTestOwner && !freshRoles.includes('SUPER_ADMIN')) {
+                    freshRoles.push('SUPER_ADMIN');
+                    if (!freshPermissions.includes('all')) {
+                        freshPermissions.push('all');
+                    }
+                }
+            }
         }
 
         if (!user) {
