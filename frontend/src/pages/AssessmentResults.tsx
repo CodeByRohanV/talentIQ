@@ -164,7 +164,9 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                 <div className="flex flex-col items-center p-4 bg-muted/20 border rounded-xl">
                   <p className="text-[10px] font-black uppercase text-muted-foreground mb-3">Identity Verification Photo</p>
                   <img 
-                    src={candidate.photoIdUrl.startsWith('http') ? candidate.photoIdUrl : `${resolveApiUrl(import.meta.env.VITE_API_URL).replace(/\/api$/, '')}${candidate.photoIdUrl}`}
+                    src={candidate.photoIdUrl.startsWith('http') 
+                      ? `${resolveApiUrl(import.meta.env.VITE_API_URL)}/proctoring/media?url=${encodeURIComponent(candidate.photoIdUrl)}` 
+                      : `${resolveApiUrl(import.meta.env.VITE_API_URL).replace(/\/api$/, '')}${candidate.photoIdUrl}`}
                     alt="Candidate ID" 
                     crossOrigin="anonymous"
                     className="rounded-lg shadow-sm border max-w-[240px] max-h-[240px] object-cover" 

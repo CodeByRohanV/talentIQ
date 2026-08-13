@@ -16,6 +16,9 @@ router.post('/start', proctoringController.startSession);
 router.post('/log', proctoringController.logEvent);
 router.post('/end', proctoringController.endSession);
 
+// Media proxy for PDF generation to bypass S3 CORS issues
+router.get('/media', proctoringController.getMedia);
+
 // Admin route (requires JWT for recruiter/admin to view reports)
 router.get('/report/:candidateId', authenticate, proctoringController.getReport);
 

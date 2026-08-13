@@ -84,3 +84,41 @@ export const getReport = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to fetch report' });
     }
 };
+
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+
+export const getMedia = async (req, res) => {
+    try {
+        const url = req.query.url;
+        if (!url || !url.includes('.amazonaws.com/')) {
+            return res.status(400).json({ success: false, message: 'Invalid media URL' });
+        }
+        
+        const s3Client = new S3Client({ region: process.env.AWS_REGION });
+        
+        const urlObj = new URL(url);
+        // Ensure it's accessing the configured bucket
+        if (!urlObj.hostname.includes(process.env.S3_BUCKET_NAME)) {
+            return res.status(403).json({ success: false, message: 'Unauthorized bucket access' });
+        }
+
+        const key = decodeURIComponent(urlObj.pathname.substring(1));
+        
+        const command = new GetObjectCommand({
+            Bucket: process.env.S3_BUCKET_NAME,
+            Key: key
+        });
+        
+        const response = await s3Client.send(command);
+        
+        res.setHeader('Content-Type', response.ContentType || 'image/jpeg');
+        // Prevent CORS issues by adding Access-Control-Allow-Origin
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        // stream it to the client
+        response.Body.pipe(res);
+    } catch (error) {
+        console.error('Error fetching media from S3:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch media' });
+    }
+};
