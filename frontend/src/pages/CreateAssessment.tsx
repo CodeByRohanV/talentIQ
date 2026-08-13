@@ -62,7 +62,7 @@ export default function CreateAssessment() {
   });
 
   const [videoProctoringEnabled, setVideoProctoringEnabled] = useState(false);
-  const [requiresPhotoId, setRequiresPhotoId] = useState(false);
+  const [requiresPhotoId, setRequiresPhotoId] = useState(true);
 
   const [deadlineHours, setDeadlineHours] = useState<number | null>(null);
   const [availabilityMode, setAvailabilityMode] = useState<'anytime' | 'scheduled'>('anytime');
@@ -765,35 +765,23 @@ export default function CreateAssessment() {
               </div>
 
               {/* ── Require Photo ID Toggle ── */}
-              <div className={cn(
-                "flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-300",
-                requiresPhotoId
-                  ? "bg-primary/5 border-primary/30"
-                  : "bg-muted/40 border-border"
-              )}>
+              <div className="flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-300 bg-primary/5 border-primary/30">
                 <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300",
-                    requiresPhotoId ? "bg-primary/15" : "bg-muted"
-                  )}>
-                    {requiresPhotoId
-                      ? <CheckCircle2 className="h-5 w-5 text-primary" />
-                      : <ShieldAlert className="h-5 w-5 text-muted-foreground" />}
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300 bg-primary/15">
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
                   </div>
                   <div className="space-y-0.5">
-                    <Label className={cn("text-sm font-bold", requiresPhotoId ? "text-primary" : "text-foreground")}>
-                      Require Photo ID
+                    <Label className="text-sm font-bold text-primary">
+                      Require Photo ID (Mandatory)
                     </Label>
                     <p className="text-[11px] text-muted-foreground">
-                      {requiresPhotoId
-                        ? "Candidate must capture their photo ID before starting"
-                        : "Photo ID capture is not required"}
+                      Candidate must capture their photo ID before starting
                     </p>
                   </div>
                 </div>
                 <Switch
-                  checked={requiresPhotoId}
-                  onCheckedChange={setRequiresPhotoId}
+                  checked={true}
+                  disabled={true}
                 />
               </div>
 

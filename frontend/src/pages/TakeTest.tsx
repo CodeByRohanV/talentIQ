@@ -367,7 +367,8 @@ export default function TakeTest() {
 
       const { attemptId: initAttemptId, candidate: candidateData, assessment: assessmentData, securityConfig: securityData, questions: questionsData, responses: responsesData, timeRemaining: time, violationCount: vCount } = response.data;
 
-      if (assessmentData.requiresPhotoId && !candidateData.photoIdCaptured) {
+      // Ensure candidate has captured photo ID
+      if (!candidateData.photoIdCaptured) {
         navigate(`/test/${token}`, { replace: true });
         return;
       }

@@ -74,10 +74,10 @@ export default function TestLanding() {
           instructions: response.data.assessment.instructions,
           availableFrom: response.data.assessment.availableFrom,
           availableUntil: response.data.assessment.availableUntil,
-          requiresPhotoId: response.data.assessment.requiresPhotoId
+          requiresPhotoId: true
         });
       } else {
-        if (response.data.assessment.requiresPhotoId && !response.data.candidate.photoIdCaptured) {
+        if (!response.data.candidate.photoIdCaptured) {
           setAssessment({
             id: response.data.assessment.id,
             title: response.data.assessment.title,
@@ -87,7 +87,7 @@ export default function TestLanding() {
             instructions: response.data.assessment.instructions,
             availableFrom: response.data.assessment.availableFrom,
             availableUntil: response.data.assessment.availableUntil,
-            requiresPhotoId: response.data.assessment.requiresPhotoId
+            requiresPhotoId: true
           });
           setCandidateToken(token!);
           setView('photo-id');
