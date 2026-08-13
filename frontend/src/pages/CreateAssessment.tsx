@@ -764,26 +764,6 @@ export default function CreateAssessment() {
                 />
               </div>
 
-              {/* ── Require Photo ID Toggle ── */}
-              <div className="flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-300 bg-primary/5 border-primary/30">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-300 bg-primary/15">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-bold text-primary">
-                      Require Photo ID (Mandatory)
-                    </Label>
-                    <p className="text-[11px] text-muted-foreground">
-                      Candidate must capture their photo ID before starting
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={true}
-                  disabled={true}
-                />
-              </div>
 
               <div className="flex items-center justify-between pb-4 border-b">
                 <div className="space-y-0.5">
