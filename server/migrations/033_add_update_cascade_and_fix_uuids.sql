@@ -4,10 +4,12 @@
 -- 1. Drop all foreign keys that reference users(id)
 ALTER TABLE questions DROP CONSTRAINT IF EXISTS questions_created_by_fkey;
 ALTER TABLE questions DROP CONSTRAINT IF EXISTS questions_created_by_manager_id_fkey;
+ALTER TABLE questions DROP CONSTRAINT IF EXISTS questions_recruiter_id_fkey;
 ALTER TABLE domains DROP CONSTRAINT IF EXISTS domains_recruiter_id_fkey;
 ALTER TABLE domains DROP CONSTRAINT IF EXISTS domains_created_by_manager_id_fkey;
 ALTER TABLE assessments DROP CONSTRAINT IF EXISTS assessments_created_by_fkey;
 ALTER TABLE assessments DROP CONSTRAINT IF EXISTS assessments_created_by_manager_id_fkey;
+ALTER TABLE assessments DROP CONSTRAINT IF EXISTS assessments_recruiter_id_fkey;
 ALTER TABLE user_roles DROP CONSTRAINT IF EXISTS user_roles_user_id_fkey;
 ALTER TABLE user_roles DROP CONSTRAINT IF EXISTS user_roles_assigned_by_fkey;
 ALTER TABLE manager_assignments DROP CONSTRAINT IF EXISTS manager_assignments_manager_id_fkey;
