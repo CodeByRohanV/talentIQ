@@ -46,6 +46,14 @@ export const getUserRolesAndPermissions = async (userId, tenantId) => {
         if (roleNames.includes('SUPER_ADMIN') && !permissions.includes('all')) {
             permissions.push('all');
         }
+        if (roleNames.includes('ADMIN')) {
+            const adminPerms = [
+                'create_assessments', 'create_questions', 'delete_assessments', 'delete_questions', 
+                'edit_questions', 'manage_candidates', 'view_questions', 'view_reports',
+                'manage_settings', 'manage_roles', 'invite_users', 'assign_hierarchy', 'bulk_delete_assessments'
+            ];
+            adminPerms.forEach(p => { if (!permissions.includes(p)) permissions.push(p); });
+        }
         if (roleNames.includes('RECRUITER') || roleNames.includes('MANAGER')) {
             const baselinePerms = ['create_assessments', 'create_questions', 'delete_assessments', 'delete_questions', 'edit_questions', 'manage_candidates', 'view_questions', 'view_reports'];
             baselinePerms.forEach(p => { if (!permissions.includes(p)) permissions.push(p); });
