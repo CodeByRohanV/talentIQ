@@ -237,16 +237,14 @@ export default function TestLanding() {
 
       let response;
       try {
-        const resUpload = await testAPI.uploadPhotoId(candidateToken!, formData);
-        response = resUpload.data;
+        response = await testAPI.uploadPhotoId(candidateToken!, formData);
       } catch (err: any) {
         // If the attempt wasn't created yet (e.g. from an old session without getTest called)
         if (err.response?.data?.message === 'No active test attempt found') {
           try {
             await testAPI.getTest(candidateToken!);
             // Retry upload
-            const retryRes = await testAPI.uploadPhotoId(candidateToken!, formData);
-            response = retryRes.data;
+            response = await testAPI.uploadPhotoId(candidateToken!, formData);
           } catch (retryErr: any) {
             console.error('Failed to initialize attempt for retry', retryErr);
             throw retryErr;
