@@ -100,6 +100,27 @@ export const requireAuth = async (req, res, next) => {
         // Override userId if an existing database record exists (e.g. UUID id)
         if (dbUserId) {
             userId = dbUserId;
+        } else if (userId && tenantId) {
+            // JIT Provisioning: Insert SSO user into local DB so foreign keys (like created_by) resolve correctly
+            try {
+                await query(
+                    `INSERT INTO users (id, email, full_name, password_hash, is_verified) 
+                     VALUES ($1, $2, $3, 'sso_user', true) 
+                     ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, email = EXCLUDED.email, is_deleted = false`,
+                    [userId, ssoEmail || `${userId}@example.com`, ssoName || 'System User']
+                );
+            } catch (err) {
+                console.error('[Auth Middleware] JIT provisioning failed:', err);
+            }
+        }
+        
+        // Reactivate user if they were soft-deleted (applies to both JIT updated and existing dbUserId)
+        if (dbUserId) {
+            try {
+                await query('UPDATE users SET is_deleted = false WHERE id = $1 AND is_deleted = true', [userId]);
+            } catch (err) {
+                console.error('[Auth Middleware] User reactivation failed:', err);
+            }
         }
 
         // Fetch managerId and domainId dynamically from DB
@@ -127,6 +148,16 @@ export const requireAuth = async (req, res, next) => {
         if (!ssoRole && decoded.roles && Array.isArray(decoded.roles)) ssoRole = decoded.roles[0];
         if (!ssoRole && decoded.realm_access && decoded.realm_access.roles) ssoRole = decoded.realm_access.roles[0];
         if (!ssoRole && decoded['cognito:groups'] && Array.isArray(decoded['cognito:groups'])) ssoRole = decoded['cognito:groups'][0];
+
+        // JIT Role Mapping: If no roles in DB, use SSO role or default to RECRUITER
+        if (roles.length === 0) {
+            const normalizedRole = ssoRole ? ssoRole.toUpperCase() : 'RECRUITER';
+            if (['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'RECRUITER'].includes(normalizedRole)) {
+                roles.push(normalizedRole);
+            } else {
+                roles.push('RECRUITER');
+            }
+        }
 
         // Failsafe: Ensure system roles always have their baseline permissions, 
         // even if the test database role_permissions table is empty due to a failed migration.

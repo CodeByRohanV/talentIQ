@@ -52,6 +52,13 @@ deploy:
     - $RUNNER_TAG
   script:
     - |
+      echo "Running secure database migrations..."
+      if docker compose version >/dev/null 2>&1; then
+        docker compose run --rm backend npm run migrate
+      else
+        docker-compose run --rm backend npm run migrate
+      fi
+    - |
       docker rm -f "$FRONTEND_CONTAINER" || true
       if docker compose version >/dev/null 2>&1; then
         echo "Using Docker Compose V2"

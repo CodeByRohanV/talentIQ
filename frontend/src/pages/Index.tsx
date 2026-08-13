@@ -28,11 +28,11 @@ export default function Index() {
 
     // Build the Scaloz workspace URL to redirect unauthenticated users back to.
     // For ALL local dev (localhost OR any .localhost subdomain like scalozflow.localhost),
-    // always go back to the Scaloz tenant login at localhost:3001.
+    // always go back to the Scaloz tenant login.
     // For production, replace "TalentiQ" with "apps" in the hostname.
     const workspaceUrl: string =
       (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost'))
-        ? 'http://localhost:3001/Home'
+        ? (import.meta.env.VITE_MAIN_TENANT_URL || 'http://localhost:3001/Home')
         : (import.meta.env.VITE_TENANT_URL ? `${import.meta.env.VITE_TENANT_URL}/Home` : `${protocol}//${hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace')}/Home`);
 
     if (!loading) {

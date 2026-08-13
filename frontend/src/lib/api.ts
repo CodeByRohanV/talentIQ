@@ -33,7 +33,8 @@ export const resolveApiUrl = (configuredUrl: string): string => {
       }
     }
     
-    if (currentHost === 'localhost' || currentHost.endsWith('.localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(currentHost)) {
+    const isLocal = import.meta.env.DEV || currentHost === 'localhost' || currentHost.endsWith('.localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(currentHost);
+    if (isLocal) {
       return `${currentProtocol}//${currentHost}:5000/api`;
     }
     
@@ -83,9 +84,9 @@ api.interceptors.response.use(
                 // Only auto-redirect back if this wasn't during initial SSO authentication attempt
                 if (!isInitialSSOLoad) {
                     const hostname = window.location.hostname;
-                    const isLocal = hostname === 'localhost' || hostname.endsWith('.localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
+                    const isLocal = import.meta.env.DEV || hostname === 'localhost' || hostname.endsWith('.localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
                     if (isLocal) {
-                        window.location.href = 'http://localhost:3001/Home';
+                        window.location.href = import.meta.env.VITE_MAIN_TENANT_URL || 'http://localhost:3001/Home';
                     } else {
                         const tenantUrl = import.meta.env.VITE_TENANT_URL;
                         if (tenantUrl) {

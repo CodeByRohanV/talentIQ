@@ -105,7 +105,7 @@ export const listUsers = async (req, res, next) => {
             FROM users u
             JOIN user_roles ur ON u.id = ur.user_id
             JOIN roles r ON ur.role_id = r.id
-            WHERE 1=1
+            WHERE u.is_deleted = false
         `;
         const params = [];
 
@@ -144,7 +144,8 @@ export const getStats = async (req, res, next) => {
             `SELECT COUNT(DISTINCT ur.user_id) 
              FROM user_roles ur 
              JOIN roles r ON ur.role_id = r.id 
-             WHERE r.name = 'MANAGER' ${isSuperAdmin ? '' : 'AND split_part(ur.user_id, \'_\', 1) = $1'}`,
+             JOIN users u ON ur.user_id = u.id
+             WHERE r.name = 'MANAGER' AND u.is_deleted = false ${isSuperAdmin ? '' : 'AND split_part(ur.user_id, \'_\', 1) = $1'}`,
             isSuperAdmin ? [] : [tenantId]
         );
 
@@ -152,7 +153,8 @@ export const getStats = async (req, res, next) => {
             `SELECT COUNT(DISTINCT ur.user_id) 
              FROM user_roles ur 
              JOIN roles r ON ur.role_id = r.id 
-             WHERE r.name = 'RECRUITER' ${isSuperAdmin ? '' : 'AND split_part(ur.user_id, \'_\', 1) = $1'}`,
+             JOIN users u ON ur.user_id = u.id
+             WHERE r.name = 'RECRUITER' AND u.is_deleted = false ${isSuperAdmin ? '' : 'AND split_part(ur.user_id, \'_\', 1) = $1'}`,
             isSuperAdmin ? [] : [tenantId]
         );
 
@@ -185,7 +187,7 @@ export const getHierarchy = async (req, res, next) => {
              FROM users u
              JOIN user_roles ur ON u.id = ur.user_id
              JOIN roles r ON ur.role_id = r.id
-             WHERE r.name = 'MANAGER' AND split_part(ur.user_id::text, '_', 1) = $1`,
+             WHERE r.name = 'MANAGER' AND u.is_deleted = false AND split_part(ur.user_id::text, '_', 1) = $1`,
             [tenantId]
         );
 
@@ -197,7 +199,7 @@ export const getHierarchy = async (req, res, next) => {
                 `SELECT u.id, u.full_name, u.email, u.employee_id
                  FROM users u
                  JOIN manager_assignments ma ON u.id = ma.recruiter_id
-                 WHERE ma.manager_id = $1`,
+                 WHERE ma.manager_id = $1 AND u.is_deleted = false`,
                 [manager.id]
             );
             manager.recruiters = assignmentsResult.rows;
@@ -394,7 +396,7 @@ export const deleteUser = async (req, res, next) => {
             return res.status(403).json({ success: false, message: 'Only a SUPER_ADMIN can delete another SUPER_ADMIN' });
         }
 
-        await query('DELETE FROM users WHERE id = $1', [id]);
+        await query('UPDATE users SET is_deleted = true WHERE id = $1', [id]);
 
         res.json({
             success: true,

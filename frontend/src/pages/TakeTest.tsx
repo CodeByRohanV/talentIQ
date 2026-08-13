@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { testAPI, candidatesAPI, proctoringAPI } from '@/lib/api';
 import ProctoringEngine from '@/components/proctoring/ProctoringEngine';
-import MultiMonitorDetector from '@/components/proctoring/MultiMonitorDetector';
+
 import {
   Clock,
   ChevronLeft,

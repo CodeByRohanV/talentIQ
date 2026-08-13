@@ -28,12 +28,13 @@ export default function Auth() {
     const hostname = window.location.hostname;
     let targetUrl = '';
     const tenantUrl = import.meta.env.VITE_TENANT_URL;
-    if (hostname !== 'localhost' && !hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+    const isLocal = import.meta.env.DEV || hostname === 'localhost' || !!hostname.match(/^\d+\.\d+\.\d+\.\d+$/);
+    if (!isLocal) {
       const protocol = window.location.protocol;
       const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace');
       targetUrl = `${protocol}//${targetHost}/Home`;
     } else {
-      targetUrl = tenantUrl ? `${tenantUrl}/Home` : 'https://workspacetest.scaloz.com/Home';
+      targetUrl = tenantUrl ? `${tenantUrl}/Home` : (import.meta.env.VITE_MAIN_TENANT_URL || 'http://localhost:3001/Home');
     }
 
     window.location.href = targetUrl;

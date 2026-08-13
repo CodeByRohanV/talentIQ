@@ -150,10 +150,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const protocol = window.location.protocol;
     
     // Check if we are running locally (localhost, *.localhost, or local IP)
-    const isLocal = hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.match(/^\d+\.\d+\.\d+\.\d+$/);
+    const isLocal = import.meta.env.DEV || hostname === 'localhost' || hostname.endsWith('.localhost') || !!hostname.match(/^\d+\.\d+\.\d+\.\d+$/);
     
     if (isLocal) {
-      window.location.href = `http://${hostname}:3001/Home`;
+      window.location.href = import.meta.env.VITE_MAIN_TENANT_URL || `http://${hostname}:3001/Home`;
     } else {
       const tenantUrl = import.meta.env.VITE_TENANT_URL;
       if (tenantUrl) {

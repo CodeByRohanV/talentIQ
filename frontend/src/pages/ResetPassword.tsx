@@ -27,7 +27,7 @@ export default function ResetPassword() {
       const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace');
       targetUrl = tenantUrl ? `${tenantUrl}/Home` : `${protocol}//${targetHost}/Home`;
     } else {
-      targetUrl = 'http://localhost:3001/Home';
+      targetUrl = import.meta.env.VITE_MAIN_TENANT_URL || 'http://localhost:3001/Home';
     }
     
     // Redirect after a 2-second delay to show the message
