@@ -30,6 +30,7 @@ import {
 } from '../utils/shuffleUtils.js';
 import { DEFAULT_SECURITY_CONFIG } from '../config/security.js';
 import { query } from '../config/database.js';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 /**
  * Shared evaluation logic for both explicit submission and auto-submission.
@@ -658,11 +659,46 @@ export const uploadPhotoId = async (req, res, next) => {
             return res.status(400).json({ success: false, message: 'No active test attempt found' });
         }
 
-        const photoIdUrl = '/uploads/' + req.file.filename;
+        // Upload to AWS S3
+        const s3Client = new S3Client({ region: process.env.AWS_REGION });
+        const s3Key = `proctoring/${attempt.id}/photo-id-${Date.now()}.jpg`;
+        
+        await s3Client.send(new PutObjectCommand({
+            Bucket: process.env.S3_BUCKET_NAME,
+            Key: s3Key,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype || 'image/jpeg',
+        }));
 
-        await TestAttempt.setPhotoId(attempt.id, photoIdUrl);
+        const s3Url = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
 
-        return res.json({ success: true, photoIdUrl });
+        // Ensure a proctoring session exists
+        let sessionRes = await query(
+            `SELECT id FROM proctoring_sessions WHERE attempt_id = $1 LIMIT 1`,
+            [attempt.id]
+        );
+        let sessionId;
+        if (sessionRes.rows.length === 0) {
+            const insertRes = await query(
+                `INSERT INTO proctoring_sessions (attempt_id, tenant_id) VALUES ($1, $2) RETURNING id`,
+                [attempt.id, candidate.tenant_id]
+            );
+            sessionId = insertRes.rows[0].id;
+        } else {
+            sessionId = sessionRes.rows[0].id;
+        }
+
+        // Insert evidence into proctoring logs
+        await query(
+            `INSERT INTO proctoring_logs (session_id, tenant_id, event_type, description, screenshot_url) 
+             VALUES ($1, $2, 'identity_verification', 'Candidate submitted photo ID', $3)`,
+            [sessionId, candidate.tenant_id, s3Url]
+        );
+
+        // Update main test attempt for backward compatibility
+        await TestAttempt.setPhotoId(attempt.id, s3Url);
+
+        return res.json({ success: true, photoIdUrl: s3Url });
     } catch (error) {
         next(error);
     }
