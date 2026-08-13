@@ -150,7 +150,11 @@ app.post(['/api/external/employees', '/external/employees'], syncUser);
 app.post(['/api/external/tenants', '/external/tenants'], syncTenant);
 
 routes.forEach(route => {
-    app.use(route.path, route.handler);
+    if (Array.isArray(route.path)) {
+        route.path.forEach(p => app.use(p, route.handler));
+    } else {
+        app.use(route.path, route.handler);
+    }
 });
 
 // 404 handler

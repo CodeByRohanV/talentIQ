@@ -231,34 +231,32 @@ export default function TestLanding() {
       // Convert base64 to Blob
       const res = await fetch(photoCaptured);
       const blob = await res.blob();
-      const API_URL = resolveApiUrl(import.meta.env.VITE_API_URL);
-      const url = `${API_URL}/test/${candidateToken}/photo-id`;
       
       const formData = new FormData();
       formData.append('photo', blob, 'photo-id.jpg');
 
-      let resUpload = await fetch(url, {
-        method: 'POST',
-        body: formData
-      });
-      let response = await resUpload.json();
-      
-      // If the attempt wasn't created yet (e.g. from an old session without getTest called)
-      if (response?.message === 'No active test attempt found') {
-        try {
-          await testAPI.getTest(candidateToken);
-          // Retry upload
-          resUpload = await fetch(url, {
-            method: 'POST',
-            body: formData
-          });
-          response = await resUpload.json();
-        } catch (e) {
-          console.error('Failed to initialize attempt for retry', e);
+      let response;
+      try {
+        const resUpload = await testAPI.uploadPhotoId(candidateToken!, formData);
+        response = resUpload.data;
+      } catch (err: any) {
+        // If the attempt wasn't created yet (e.g. from an old session without getTest called)
+        if (err.response?.data?.message === 'No active test attempt found') {
+          try {
+            await testAPI.getTest(candidateToken!);
+            // Retry upload
+            const retryRes = await testAPI.uploadPhotoId(candidateToken!, formData);
+            response = retryRes.data;
+          } catch (retryErr: any) {
+            console.error('Failed to initialize attempt for retry', retryErr);
+            throw retryErr;
+          }
+        } else {
+          throw err;
         }
       }
 
-      if (!resUpload.ok || !response?.success) {
+      if (!response?.success) {
         throw new Error(response?.message || 'Failed to upload photo');
       }
 
