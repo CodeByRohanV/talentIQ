@@ -165,7 +165,7 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                   <p className="text-[10px] font-black uppercase text-muted-foreground mb-3">Identity Verification Photo</p>
                   <img 
                     src={candidate.photoIdUrl.startsWith('http') 
-                      ? `${resolveApiUrl(import.meta.env.VITE_API_URL)}/proctoring/media?url=${encodeURIComponent(candidate.photoIdUrl)}` 
+                      ? `${resolveApiUrl(import.meta.env.VITE_API_URL).replace(/\/+$/, '')}/proctoring/media?url=${encodeURIComponent(candidate.photoIdUrl)}` 
                       : `${resolveApiUrl(import.meta.env.VITE_API_URL).replace(/\/api$/, '')}${candidate.photoIdUrl}`}
                     alt="Candidate ID" 
                     crossOrigin="anonymous"

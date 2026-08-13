@@ -252,7 +252,7 @@ export default function ProctoringEvidence() {
                               <>
                                 <img 
                                   src={log.screenshot_url.startsWith('http') 
-                                    ? `${resolveApiUrl(import.meta.env.VITE_API_URL)}/proctoring/media?url=${encodeURIComponent(log.screenshot_url)}` 
+                                    ? `${resolveApiUrl(import.meta.env.VITE_API_URL).replace(/\/+$/, '')}/proctoring/media?url=${encodeURIComponent(log.screenshot_url)}` 
                                     : `${BACKEND_BASE_URL}${log.screenshot_url}`} 
                                   alt="Evidence Thumbnail" 
                                   className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
@@ -324,7 +324,7 @@ export default function ProctoringEvidence() {
                                  </p>
                                  <img 
                                    src={log.screenshot_url.startsWith('http') 
-                                    ? `${resolveApiUrl(import.meta.env.VITE_API_URL)}/proctoring/media?url=${encodeURIComponent(log.screenshot_url)}` 
+                                    ? `${resolveApiUrl(import.meta.env.VITE_API_URL).replace(/\/+$/, '')}/proctoring/media?url=${encodeURIComponent(log.screenshot_url)}` 
                                     : `${BACKEND_BASE_URL}${log.screenshot_url}`} 
                                    alt="Evidence" 
                                    className="w-full rounded-lg border border-border cursor-pointer hover:opacity-90 transition-opacity"
@@ -380,7 +380,7 @@ export default function ProctoringEvidence() {
                   {selectedLog.screenshot_url ? (
                     <img 
                       src={selectedLog.screenshot_url.startsWith('http') 
-                        ? `${resolveApiUrl(import.meta.env.VITE_API_URL)}/proctoring/media?url=${encodeURIComponent(selectedLog.screenshot_url)}` 
+                        ? `${resolveApiUrl(import.meta.env.VITE_API_URL).replace(/\/+$/, '')}/proctoring/media?url=${encodeURIComponent(selectedLog.screenshot_url)}` 
                         : `${BACKEND_BASE_URL}${selectedLog.screenshot_url}`} 
                       alt="Full Evidence Preview" 
                       className="max-w-full max-h-full object-contain rounded-lg shadow-2xl border border-border/10"
