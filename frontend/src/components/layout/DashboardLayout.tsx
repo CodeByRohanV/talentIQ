@@ -134,7 +134,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {navItems.map((item) => {
             // Permission check
             if (item.permission && !user?.permissions?.includes(item.permission)) {
-              if (!user?.roles?.includes('SUPER_ADMIN')) {
+              if (!user?.roles?.includes('SUPER_ADMIN') && !user?.roles?.includes('ADMIN') && !user?.roles?.includes('Admin')) {
                 return null;
               }
             }

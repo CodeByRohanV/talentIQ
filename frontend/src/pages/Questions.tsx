@@ -171,7 +171,9 @@ export default function Questions() {
 
   const canWrite = (user as any)?.permissions?.includes('create_questions') ||
     (user as any)?.permissions?.includes('all') ||
-    (user as any)?.roles?.includes('SUPER_ADMIN');
+    (user as any)?.roles?.includes('SUPER_ADMIN') ||
+    (user as any)?.roles?.includes('ADMIN') ||
+    (user as any)?.roles?.includes('Admin');
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);

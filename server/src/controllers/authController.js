@@ -302,8 +302,9 @@ export const getMe = async (req, res, next) => {
 
                 // Always fetch fresh roles and permissions after potential role update
                 const fresh = await permissionService.getUserRolesAndPermissions(user.id, req.auth.tenantId);
-                freshRoles = fresh.roles;
-                freshPermissions = fresh.permissions;
+                // Fallback to JIT roles/permissions from authMiddleware if DB lookup returns empty (e.g. isolated tenant schemas)
+                freshRoles = fresh.roles && fresh.roles.length > 0 ? fresh.roles : req.auth.roles;
+                freshPermissions = fresh.permissions && fresh.permissions.length > 0 ? fresh.permissions : req.auth.permissions;
                 
                 if (isTestOwner && !freshRoles.includes('SUPER_ADMIN')) {
                     freshRoles.push('SUPER_ADMIN');
