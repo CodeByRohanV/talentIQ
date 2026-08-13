@@ -661,7 +661,7 @@ export const uploadPhotoId = async (req, res, next) => {
 
         // Upload to AWS S3
         const s3Client = new S3Client({ region: process.env.AWS_REGION });
-        const s3Key = `proctoring/${attempt.id}/photo-id-${Date.now()}.jpg`;
+        const s3Key = `evidence/${attempt.id}/photo-id-${Date.now()}.jpg`;
         
         await s3Client.send(new PutObjectCommand({
             Bucket: process.env.S3_BUCKET_NAME,

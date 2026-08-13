@@ -232,7 +232,7 @@ export default function TestLanding() {
       const res = await fetch(photoCaptured);
       const blob = await res.blob();
       const API_URL = resolveApiUrl(import.meta.env.VITE_API_URL);
-      const url = `${API_URL}/api/test/${candidateToken}/photo-id`;
+      const url = `${API_URL}/test/${candidateToken}/photo-id`;
       
       const formData = new FormData();
       formData.append('photo', blob, 'photo-id.jpg');
