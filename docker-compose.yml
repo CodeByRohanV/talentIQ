@@ -25,6 +25,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-/api/}
+        VITE_TENANT_URL: ${VITE_TENANT_URL:-https://workspacetest.scaloz.com}
     container_name: xeskillz-frontend
     restart: always
     networks:
