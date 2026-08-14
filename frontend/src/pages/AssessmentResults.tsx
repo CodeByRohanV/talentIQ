@@ -360,8 +360,8 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                         </CardHeader>
                         <CardContent className="space-y-4 pt-2">
                           {(item.questionType === 'SUBJECTIVE' || item.question_type === 'SUBJECTIVE') ? (
-                            <div className="space-y-4">
-                              <div className="p-4 bg-muted/30 border rounded-lg whitespace-pre-wrap">
+                            <div className="space-y-4 w-full max-w-full overflow-hidden">
+                              <div className="p-4 bg-muted/30 border rounded-lg whitespace-pre-wrap break-all [overflow-wrap:anywhere] w-full max-w-full overflow-hidden">
                                 {item.textAnswer || <span className="text-muted-foreground italic">No text answer provided.</span>}
                               </div>
                               {item.manualScore !== null && item.manualScore !== undefined && !editingGrades[item.responseId] ? (
@@ -372,7 +372,7 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                                     </div>
                                     <div>
                                       <h4 className="text-sm font-bold text-green-900">Graded: {item.manualScore} / {item.max_score || 1}</h4>
-                                      {item.graderFeedback && <p className="text-xs text-green-700/80 mt-0.5 whitespace-pre-wrap">"{item.graderFeedback}"</p>}
+                                      {item.graderFeedback && <p className="text-xs text-green-700/80 mt-0.5 whitespace-pre-wrap break-words min-w-0">"{item.graderFeedback}"</p>}
                                     </div>
                                   </div>
                                   <Button size="sm" variant="outline" className="h-8 text-xs font-semibold bg-white shrink-0" onClick={() => {
@@ -384,8 +384,8 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                               ) : (
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 mt-2 border rounded-xl bg-slate-50/50 dark:bg-slate-900/30 flex-nowrap" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                   <div className="flex-1 w-full min-w-[200px]">
-                                    <Input 
-                                      className="w-full h-9 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-sm" 
+                                    <textarea 
+                                      className="flex min-h-[60px] w-full rounded-md border border-input bg-white dark:bg-slate-950 px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 break-all [overflow-wrap:anywhere] whitespace-pre-wrap resize-y w-full max-w-full" 
                                       placeholder="Add optional feedback..." 
                                       defaultValue={item.graderFeedback || ''}
                                       id={`feedback-${item.responseId}`}
@@ -474,14 +474,14 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                                         : "bg-background border-border"
                                   )}
                                 >
-                                  <div className="flex items-center gap-3">
+                                  <div className="flex items-start gap-3 flex-1 min-w-0">
                                     <span className={cn(
-                                      "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
+                                      "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5",
                                       optIdx === item.correctAnswer ? "bg-success text-white" : "bg-muted"
                                     )}>
                                       {String.fromCharCode(65 + optIdx)}
                                     </span>
-                                    {option}
+                                    <span className="break-words whitespace-pre-wrap min-w-0 flex-1">{option}</span>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     {optIdx === item.correctAnswer && (
@@ -1092,7 +1092,7 @@ export default function AssessmentResults() {
       </div>
 
       <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pr-10">
               <div className="flex items-center gap-2 text-2xl">

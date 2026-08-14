@@ -887,10 +887,10 @@ export default function TakeTest() {
               </CardHeader>
               <CardContent>
                 {currentQuestion.question_type === 'SUBJECTIVE' ? (
-                  <div className="space-y-2 mt-4">
+                  <div className="space-y-2 mt-4 w-full max-w-full overflow-hidden">
                     <Textarea
                       key={currentQuestion.id}
-                      className="min-h-[200px] text-lg p-4 resize-y border-2 focus-visible:ring-primary"
+                      className="min-h-[200px] text-lg p-4 resize-y border-2 focus-visible:ring-primary break-all [overflow-wrap:anywhere] w-full max-w-full"
                       placeholder="Type your answer here... (Auto-saves when you click away)"
                       value={textInput}
                       onChange={(e) => setTextInput(e.target.value)}
