@@ -41,6 +41,12 @@ export const resolveApiUrl = (configuredUrl: string): string => {
     return urls[0].replace('*.', '').replace('http:', currentProtocol);
   }
   
+  const currentHost = window.location.hostname;
+  const isLocal = import.meta.env.DEV || currentHost === 'localhost' || currentHost.endsWith('.localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(currentHost);
+  if (isLocal && configuredUrl.includes('localhost')) {
+    return configuredUrl.replace('localhost', currentHost);
+  }
+  
   return configuredUrl;
 };
  
@@ -143,7 +149,7 @@ export const authAPI = {
  
 // Questions API
 export const questionsAPI = {
-    getAll: (filters?: { domain?: string; domainId?: string; difficulty?: string; search?: string; page?: number; limit?: number }) =>
+    getAll: (filters?: { domain?: string; domainId?: string; difficulty?: string; search?: string; page?: number; limit?: number; questionType?: string }) =>
         api.get('/questions', { params: filters }),
  
     getMyDomain: (filters?: { domainId?: string; difficulty?: string; search?: string; page?: number; limit?: number }) =>
@@ -243,8 +249,8 @@ export const testAPI = {
     startTest: (token: string) =>
         api.post(`/test/${token}/start`),
  
-    saveResponse: (token: string, questionId: string, selectedAnswer: number | null, isFlagged: boolean) =>
-        api.post(`/test/${token}/response`, { questionId, selectedAnswer, isFlagged }),
+    saveResponse: (token: string, questionId: string, selectedAnswer: number | null, isFlagged: boolean, textAnswer?: string) =>
+        api.post(`/test/${token}/response`, { questionId, selectedAnswer, isFlagged, textAnswer }),
  
     logViolation: (token: string, violationType: string, metadata: any) =>
         api.post(`/test/${token}/violation`, { violationType, metadata }),
@@ -276,6 +282,9 @@ export const resultsAPI = {
 
     getDetailedByAssessment: (assessmentId: string) =>
         api.get(`/results/assessment/${assessmentId}/detailed`),
+
+    gradeResponse: (responseId: string, manualScore: number, graderFeedback: string) =>
+        api.put(`/results/responses/${responseId}/grade`, { manualScore, graderFeedback }),
 };
  
 // Admin API

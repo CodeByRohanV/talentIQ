@@ -145,7 +145,8 @@ export const getDetailedResult = async (req, res, next) => {
                 domain: r.domain,
                 difficulty: r.difficulty,
                 answeredAt: r.answered_at,
-                isAnswered: r.is_answered
+                isAnswered: r.is_answered,
+                max_score: r.max_score || 1
             }))
         });
     } catch (error) {
@@ -177,7 +178,8 @@ export const getDetailedResultsByAssessment = async (req, res, next) => {
                 domain: r.domain,
                 difficulty: r.difficulty,
                 answeredAt: r.answered_at,
-                isAnswered: r.is_answered
+                isAnswered: r.is_answered,
+                max_score: r.max_score || 1
             });
         });
 

@@ -9,10 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { assessmentsAPI, questionsAPI, domainsAPI } from '@/lib/api';
-import { ArrowLeft, Loader2, Copy, CheckCircle2, ShieldAlert, ChevronDown, LayoutPanelLeft, Clock, Calendar, Minus, Plus, Video, VideoOff } from 'lucide-react';
+import { ArrowLeft, Loader2, Copy, CheckCircle2, ShieldAlert, ChevronDown, LayoutPanelLeft, Clock, Calendar, Minus, Plus, Video, VideoOff, Search, FileQuestion } from 'lucide-react';
 import { z } from 'zod';
 import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 const assessmentSchema = z.object({
@@ -75,9 +79,57 @@ export default function CreateAssessment() {
   const [shareLink, setShareLink] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Manual Selection State
+  const [selectionMode, setSelectionMode] = useState<'auto' | 'manual'>('auto');
+  const [selectedManualIds, setSelectedManualIds] = useState<Set<string>>(new Set());
+  const [manualQuestions, setManualQuestions] = useState<any[]>([]);
+  const [manualSearch, setManualSearch] = useState('');
+  const [manualDomainFilter, setManualDomainFilter] = useState('all');
+  const [manualDifficultyFilter, setManualDifficultyFilter] = useState('all');
+  const [manualTypeFilter, setManualTypeFilter] = useState('all');
+  const [manualPage, setManualPage] = useState(1);
+  const [manualTotalPages, setManualTotalPages] = useState(1);
+  const [manualTotalItems, setManualTotalItems] = useState(0);
+  const [isFetchingManual, setIsFetchingManual] = useState(false);
+
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
   }, [user, authLoading, navigate]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setManualPage(1);
+  }, [manualSearch, manualDomainFilter, manualDifficultyFilter, manualTypeFilter]);
+
+  // Fetch manual questions whenever filters or page change and we are in manual mode
+  useEffect(() => {
+    if (selectionMode === 'manual') {
+      const delay = setTimeout(() => {
+        fetchManualQuestions();
+      }, 300);
+      return () => clearTimeout(delay);
+    }
+  }, [selectionMode, manualSearch, manualDomainFilter, manualDifficultyFilter, manualTypeFilter, manualPage]);
+
+  const fetchManualQuestions = async () => {
+    setIsFetchingManual(true);
+    try {
+      const filters: any = { limit: 20, page: manualPage };
+      if (manualSearch) filters.search = manualSearch;
+      if (manualDomainFilter !== 'all') filters.domainId = manualDomainFilter;
+      if (manualDifficultyFilter !== 'all') filters.difficulty = manualDifficultyFilter;
+      if (manualTypeFilter !== 'all') filters.questionType = manualTypeFilter;
+      
+      const res = await questionsAPI.getAll(filters) as any;
+      setManualQuestions(res.data || []);
+      setManualTotalItems(res.total || 0);
+      setManualTotalPages(Math.ceil((res.total || 0) / 20) || 1);
+    } catch (err) {
+      console.error('Failed to fetch questions:', err);
+    } finally {
+      setIsFetchingManual(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -125,11 +177,15 @@ export default function CreateAssessment() {
       return;
     }
 
-    const total = Object.values(questionsConfig).reduce((sum, domainConfig) => {
+    const totalAuto = Object.values(questionsConfig).reduce((sum, domainConfig) => {
       return sum + Object.values(domainConfig).reduce((dSum, count) => dSum + count, 0);
     }, 0);
 
-    if (total === 0) {
+    const totalManual = selectedManualIds.size;
+    const isAutoEmpty = selectionMode === 'auto' && totalAuto === 0;
+    const isManualEmpty = selectionMode === 'manual' && totalManual === 0;
+
+    if (isAutoEmpty || isManualEmpty) {
       toast({ title: 'No questions selected', description: 'Please select at least one question', variant: 'destructive' });
       return;
     }
@@ -142,23 +198,26 @@ export default function CreateAssessment() {
       
       const questionIds: string[] = [];
 
-      for (const [domainId, config] of Object.entries(questionsConfig)) {
-        for (const [difficulty, count] of Object.entries(config)) {
-          if (count > 0) {
-            // Find if it's numeric, UUID, or slug
-            const isNumeric = /^\d+$/.test(domainId);
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(domainId);
-            // Request a large enough limit to get all available for shuffling
-            const filters: Record<string, string | number> = { limit: 1000, difficulty };
-            if (isNumeric || isUUID) filters.domainId = domainId;
-            else filters.domain = domainId;
+      if (selectionMode === 'auto') {
+        for (const [domainId, config] of Object.entries(questionsConfig)) {
+          for (const [difficulty, count] of Object.entries(config)) {
+            if (count > 0) {
+              const isNumeric = /^\d+$/.test(domainId);
+              const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(domainId);
+              const filters: Record<string, string | number> = { limit: 1000, difficulty };
+              if (isNumeric || isUUID) filters.domainId = domainId;
+              else filters.domain = domainId;
 
-            const response = await questionsAPI.getAll(filters);
-            const domainQuestions = response.data || [];
-            const shuffled = domainQuestions.sort(() => Math.random() - 0.5).slice(0, count);
-            shuffled.forEach((q: { id: string }) => questionIds.push(q.id));
+              const response = await questionsAPI.getAll(filters);
+              const domainQuestions = response.data || [];
+              const shuffled = domainQuestions.sort(() => Math.random() - 0.5).slice(0, count);
+              shuffled.forEach((q: { id: string }) => questionIds.push(q.id));
+            }
           }
         }
+      } else {
+        // Manual mode
+        questionIds.push(...Array.from(selectedManualIds));
       }
 
       if (questionIds.length === 0) {
@@ -523,7 +582,30 @@ export default function CreateAssessment() {
               <CardDescription>Select number of questions by domain and difficulty</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <Accordion type="multiple" className="w-full space-y-3">
+              <div className="flex p-1 bg-muted rounded-lg w-fit mb-4">
+                <Button 
+                  type="button"
+                  variant={selectionMode === 'auto' ? 'secondary' : 'ghost'} 
+                  size="sm"
+                  className={cn("h-8 text-xs font-bold px-4", selectionMode === 'auto' && "bg-background shadow-sm")}
+                  onClick={() => setSelectionMode('auto')}
+                >
+                  Auto-Distribution
+                </Button>
+                <Button 
+                  type="button"
+                  variant={selectionMode === 'manual' ? 'secondary' : 'ghost'} 
+                  size="sm"
+                  className={cn("h-8 text-xs font-bold px-4", selectionMode === 'manual' && "bg-background shadow-sm")}
+                  onClick={() => setSelectionMode('manual')}
+                >
+                  Manual Picker
+                </Button>
+              </div>
+
+              {selectionMode === 'auto' ? (
+                <>
+                  <Accordion type="multiple" className="w-full space-y-3">
                 {domains.map((domain) => {
                   const domainConfig = questionsConfig[domain.id] || { easy: 0, medium: 0, hard: 0 };
                   const domainTotal = Object.values(domainConfig).reduce((s, v) => s + v, 0);
@@ -639,6 +721,162 @@ export default function CreateAssessment() {
                   <span className="text-sm font-medium text-muted-foreground">questions</span>
                 </div>
               </div>
+              </>
+              ) : (
+                <div className="space-y-4 animate-in fade-in duration-300">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Search questions..." 
+                        value={manualSearch} 
+                        onChange={(e) => setManualSearch(e.target.value)} 
+                        className="pl-9 h-10 bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary/20" 
+                      />
+                    </div>
+                    <Select value={manualDomainFilter} onValueChange={setManualDomainFilter}>
+                      <SelectTrigger className="w-[160px] h-10 bg-muted/50 border-none font-semibold text-xs">
+                        <SelectValue placeholder="All Domains" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all" className="font-semibold text-xs">All Domains</SelectItem>
+                        {domains.map(d => (
+                          <SelectItem key={d.id} value={d.id} className="font-semibold text-xs">{d.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={manualDifficultyFilter} onValueChange={setManualDifficultyFilter}>
+                      <SelectTrigger className="w-[140px] h-10 bg-muted/50 border-none font-semibold text-xs">
+                        <SelectValue placeholder="Difficulty" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all" className="font-semibold text-xs">All Difficulties</SelectItem>
+                        <SelectItem value="easy" className="font-semibold text-xs text-emerald-600">Easy</SelectItem>
+                        <SelectItem value="medium" className="font-semibold text-xs text-amber-600">Medium</SelectItem>
+                        <SelectItem value="hard" className="font-semibold text-xs text-rose-600">Hard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={manualTypeFilter} onValueChange={setManualTypeFilter}>
+                      <SelectTrigger className="w-[140px] h-10 bg-muted/50 border-none font-semibold text-xs">
+                        <SelectValue placeholder="Question Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all" className="font-semibold text-xs">All Types</SelectItem>
+                        <SelectItem value="MULTIPLE_CHOICE" className="font-semibold text-xs">Multiple Choice</SelectItem>
+                        <SelectItem value="SUBJECTIVE" className="font-semibold text-xs">Subjective</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="border rounded-xl overflow-hidden max-h-[500px] overflow-y-auto">
+                    <Table>
+                      <TableHeader className="bg-slate-50/50 dark:bg-slate-900/50 sticky top-0 z-10 backdrop-blur-sm">
+                        <TableRow>
+                          <TableHead className="w-12 px-4">
+                            <Checkbox 
+                              checked={manualQuestions.length > 0 && manualQuestions.every(q => selectedManualIds.has(q.id))}
+                              onCheckedChange={(checked) => {
+                                const next = new Set(selectedManualIds);
+                                if (checked) {
+                                  manualQuestions.forEach(q => next.add(q.id));
+                                } else {
+                                  manualQuestions.forEach(q => next.delete(q.id));
+                                }
+                                setSelectedManualIds(next);
+                              }}
+                            />
+                          </TableHead>
+                          <TableHead className="text-xs font-bold uppercase tracking-wider">Question Text</TableHead>
+                          <TableHead className="text-xs font-bold uppercase tracking-wider">Domain</TableHead>
+                          <TableHead className="text-xs font-bold uppercase tracking-wider">Type / Difficulty</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {isFetchingManual ? (
+                          <TableRow>
+                            <TableCell colSpan={4} className="h-40 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></TableCell>
+                          </TableRow>
+                        ) : manualQuestions.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={4} className="h-40 text-center text-muted-foreground flex-col gap-2">
+                              <FileQuestion className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                              <p className="font-semibold">No questions found</p>
+                              <p className="text-xs">Try adjusting your filters</p>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          manualQuestions.map((q) => (
+                            <TableRow key={q.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
+                              <TableCell className="px-4">
+                                <Checkbox 
+                                  checked={selectedManualIds.has(q.id)}
+                                  onCheckedChange={(checked) => {
+                                    const next = new Set(selectedManualIds);
+                                    if (checked) next.add(q.id);
+                                    else next.delete(q.id);
+                                    setSelectedManualIds(next);
+                                  }}
+                                />
+                          </TableCell>
+                              <TableCell className="font-medium text-sm max-w-[300px] truncate">{q.questionText || q.question_text}</TableCell>
+                              <TableCell className="text-xs">{q.domainName || q.domain}</TableCell>
+                              <TableCell className="text-xs">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className={cn("text-[9px] uppercase tracking-wider", q.difficulty === 'easy' ? 'text-emerald-600' : q.difficulty === 'medium' ? 'text-amber-600' : 'text-rose-600')}>
+                                    {q.difficulty}
+                                  </Badge>
+                                  {(q.questionType === 'SUBJECTIVE' || q.question_type === 'SUBJECTIVE') ? (
+                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-[9px] uppercase">Subjective</Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-[9px] uppercase">MCQ</Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-4 px-2">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {manualQuestions.length} of {manualTotalItems} questions
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setManualPage(p => Math.max(1, p - 1))}
+                        disabled={manualPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-sm font-medium px-2">
+                        Page {manualPage} of {manualTotalPages}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setManualPage(p => Math.min(manualTotalPages, p + 1))}
+                        disabled={manualPage === manualTotalPages}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2 flex items-center justify-between px-2">
+                    <span className="font-medium text-muted-foreground">Manually Selected Questions</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-primary">{selectedManualIds.size}</span>
+                      <span className="text-sm font-medium text-muted-foreground">questions</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

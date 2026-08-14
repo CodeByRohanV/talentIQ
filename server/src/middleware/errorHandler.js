@@ -43,6 +43,7 @@ export const errorHandler = (err, req, res, next) => {
 };
 
 export const notFound = (req, res) => {
+    console.log(`404 Route Not Found: ${req.method} ${req.originalUrl} (path: ${req.path})`);
     res.status(404).json({
         success: false,
         message: 'Route not found'

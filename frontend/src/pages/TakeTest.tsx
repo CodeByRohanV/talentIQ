@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +39,7 @@ interface Question {
   domain: string;
   domain_name?: string;
   questionText: string;
+  question_type?: string;
   options: string[];
   displayPosition: number; // backend-assigned shuffle position (0-based)
 }
@@ -46,6 +48,7 @@ interface Response {
   questionId: string;
   selectedAnswer: number | null;
   isFlagged: boolean;
+  textAnswer?: string | null;
 }
 
 interface SecurityConfig {
@@ -115,6 +118,8 @@ export default function TakeTest() {
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
   // Refs — always hold the latest values so event-listener callbacks never go stale
+  const [textInput, setTextInput] = useState('');
+  
   const violationCountRef = useRef(0);
   const lastViolationTime = useRef(0);
   const isSubmittingRef = useRef(false);
@@ -403,6 +408,7 @@ export default function TakeTest() {
           questionId: r.questionId,
           selectedAnswer: r.selectedAnswer,
           isFlagged: r.isFlagged,
+          textAnswer: r.textAnswer,
         });
       });
       setResponses(responseMap);
@@ -504,20 +510,24 @@ export default function TakeTest() {
     }
   };
 
-  const handleAnswerChange = async (questionId: string, answerIndex: number) => {
+  const handleAnswerChange = async (questionId: string, answerIndex: number | null, textAnswer?: string) => {
     const currentRes = responses.get(questionId);
-    const newAnswerIndex = currentRes?.selectedAnswer === answerIndex ? null : answerIndex;
+    let newAnswerIndex = answerIndex;
+    if (answerIndex !== null && currentRes?.selectedAnswer === answerIndex) {
+      newAnswerIndex = null;
+    }
 
     const newResponse: Response = {
       questionId,
       selectedAnswer: newAnswerIndex,
       isFlagged: currentRes?.isFlagged || false,
+      textAnswer: textAnswer !== undefined ? textAnswer : currentRes?.textAnswer,
     };
 
     setResponses(new Map(responses.set(questionId, newResponse)));
 
     try {
-      await testAPI.saveResponse(token!, questionId, newAnswerIndex, newResponse.isFlagged);
+      await testAPI.saveResponse(token!, questionId, newAnswerIndex, newResponse.isFlagged, newResponse.textAnswer || undefined);
     } catch (err) {
       console.error('Error saving response:', err);
     }
@@ -529,12 +539,13 @@ export default function TakeTest() {
       questionId,
       selectedAnswer: currentRes?.selectedAnswer ?? null,
       isFlagged: !currentRes?.isFlagged,
+      textAnswer: currentRes?.textAnswer,
     };
 
     setResponses(new Map(responses.set(questionId, newResponse)));
 
     try {
-      await testAPI.saveResponse(token!, questionId, newResponse.selectedAnswer, newResponse.isFlagged);
+      await testAPI.saveResponse(token!, questionId, newResponse.selectedAnswer, newResponse.isFlagged, newResponse.textAnswer || undefined);
     } catch (err) {
       console.error('Error toggling flag:', err);
     }
@@ -574,9 +585,15 @@ export default function TakeTest() {
 
   const currentQuestion = questions[currentIndex];
   const currentResponse = currentQuestion ? responses.get(currentQuestion.id) : null;
-  const answeredCount = Array.from(responses.values()).filter((r) => r.selectedAnswer !== null).length;
+  const answeredCount = Array.from(responses.values()).filter((r) => r.selectedAnswer !== null || (r.textAnswer && r.textAnswer.trim().length > 0)).length;
   const flaggedCount = Array.from(responses.values()).filter((r) => r.isFlagged).length;
   const allVisited = visitedQuestions.size === questions.length;
+
+  useEffect(() => {
+    if (currentQuestion) {
+      setTextInput(responses.get(currentQuestion.id)?.textAnswer || '');
+    }
+  }, [currentQuestion?.id]);
 
   if (requiresRegistration && assessmentForRegistration) {
     return (
@@ -864,23 +881,39 @@ export default function TakeTest() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {currentQuestion.options.map((option, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "flex items-center space-x-4 border-2 rounded-xl p-5 transition-all cursor-pointer group hover:border-primary/40",
-                        currentResponse?.selectedAnswer === index ? "bg-primary/5 border-primary ring-1 ring-primary" : "bg-card border-border hover:bg-accent/50"
-                      )}
-                      onClick={() => handleAnswerChange(currentQuestion.id, index)}
-                    >
-                      <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors", currentResponse?.selectedAnswer === index ? "border-primary bg-primary" : "border-muted-foreground/30")}>
-                        {currentResponse?.selectedAnswer === index && <div className="w-2 h-2 rounded-full bg-white" />}
-                      </div>
-                      <span className="text-lg font-medium">{option}</span>
+                {currentQuestion.question_type === 'SUBJECTIVE' ? (
+                  <div className="space-y-2 mt-4">
+                    <Textarea
+                      key={currentQuestion.id}
+                      className="min-h-[200px] text-lg p-4 resize-y border-2 focus-visible:ring-primary"
+                      placeholder="Type your answer here... (Auto-saves when you click away)"
+                      value={textInput}
+                      onChange={(e) => setTextInput(e.target.value)}
+                      onBlur={() => handleAnswerChange(currentQuestion.id, null, textInput)}
+                    />
+                    <div className="text-right text-sm text-muted-foreground font-medium">
+                      {textInput.trim().split(/\s+/).filter(w => w.length > 0).length} words
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {currentQuestion.options.map((option, index) => (
+                      <div
+                        key={index}
+                        className={cn(
+                          "flex items-center space-x-4 border-2 rounded-xl p-5 transition-all cursor-pointer group hover:border-primary/40",
+                          currentResponse?.selectedAnswer === index ? "bg-primary/5 border-primary ring-1 ring-primary" : "bg-card border-border hover:bg-accent/50"
+                        )}
+                        onClick={() => handleAnswerChange(currentQuestion.id, index)}
+                      >
+                        <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors", currentResponse?.selectedAnswer === index ? "border-primary bg-primary" : "border-muted-foreground/30")}>
+                          {currentResponse?.selectedAnswer === index && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                        <span className="text-lg font-medium">{option}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="mt-8 flex justify-between items-center pt-6 border-t font-semibold">
                   <div className="flex gap-4">

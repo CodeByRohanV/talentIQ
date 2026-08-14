@@ -104,6 +104,7 @@ export function applyRandomization(questions, questionOrder, optionOrderMap) {
             domain_id: q.domain_id,
             domain_name: q.domain_name,
             questionText: q.question_text,
+            question_type: q.question_type || 'MULTIPLE_CHOICE',
             difficulty: q.difficulty,
             options: displayOptions,          // shuffled options — no correct_answer
             displayPosition,                  // 0-based position in this candidate's view

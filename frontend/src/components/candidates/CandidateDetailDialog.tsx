@@ -473,8 +473,13 @@ export default function CandidateDetailDialog({ candidate, open, onOpenChange }:
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3 pt-2">
-                        <div className="grid gap-2">
-                          {item.options.map((option: string, optIdx: number) => (
+                        {(item.questionType === 'SUBJECTIVE' || item.question_type === 'SUBJECTIVE') ? (
+                          <div className="p-4 bg-muted/30 border rounded-lg whitespace-pre-wrap">
+                            {item.textAnswer || <span className="text-muted-foreground italic">No text answer provided.</span>}
+                          </div>
+                        ) : (
+                          <div className="grid gap-2">
+                            {(item.options || []).map((option: string, optIdx: number) => (
                             <div 
                               key={optIdx} 
                               className={cn(
@@ -497,6 +502,7 @@ export default function CandidateDetailDialog({ candidate, open, onOpenChange }:
                             </div>
                           ))}
                         </div>
+                        )}
                         <div className="pt-2 flex items-center gap-4 text-[11px] font-medium">
                           {item.selectedAnswer === null ? (
                             <span className="text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">Unanswered</span>

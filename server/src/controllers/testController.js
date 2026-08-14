@@ -383,7 +383,8 @@ export const getTestByToken = async (req, res, next) => {
                     selectedAnswer: r.selected_answer !== null
                         ? reverseMapAnswer(r.selected_answer, r.question_id, optionOrderMap)
                         : null,
-                    isFlagged: r.is_flagged
+                    isFlagged: r.is_flagged,
+                    textAnswer: r.text_answer || null
                 })),
                 timeRemaining
             }
@@ -462,7 +463,7 @@ export const startTest = async (req, res, next) => {
 export const saveResponse = async (req, res, next) => {
     try {
         const { token } = req.params;
-        const { questionId, selectedAnswer, isFlagged } = req.body;
+        const { questionId, selectedAnswer, isFlagged, textAnswer } = req.body;
 
         if (!questionId) {
             return res.status(400).json({ success: false, message: 'questionId is required' });
@@ -519,7 +520,8 @@ export const saveResponse = async (req, res, next) => {
             candidate.id,
             questionId,
             originalAnswerIndex,
-            isFlagged || false
+            isFlagged || false,
+            textAnswer || null
         );
 
         return res.json({
@@ -659,18 +661,26 @@ export const uploadPhotoId = async (req, res, next) => {
             return res.status(400).json({ success: false, message: 'No active test attempt found' });
         }
 
-        // Upload to AWS S3
-        const s3Client = new S3Client({ region: process.env.AWS_REGION });
         const s3Key = `evidence/${attempt.id}/photo-id-${Date.now()}.jpg`;
-        
-        await s3Client.send(new PutObjectCommand({
-            Bucket: process.env.S3_BUCKET_NAME,
-            Key: s3Key,
-            Body: req.file.buffer,
-            ContentType: req.file.mimetype || 'image/jpeg',
-        }));
+        let s3Url;
 
-        const s3Url = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
+        // Graceful fallback for local development when AWS credentials are missing
+        if (process.env.NODE_ENV === 'development' && !process.env.AWS_ACCESS_KEY_ID) {
+            console.warn('⚠️ AWS credentials not found in development. Using mock photo ID upload.');
+            s3Url = `https://mock-s3-bucket.local/${s3Key}`;
+        } else {
+            // Upload to AWS S3 (Production or Local with configured keys)
+            const s3Client = new S3Client({ region: process.env.AWS_REGION });
+            
+            await s3Client.send(new PutObjectCommand({
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: s3Key,
+                Body: req.file.buffer,
+                ContentType: req.file.mimetype || 'image/jpeg',
+            }));
+
+            s3Url = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
+        }
 
         // Ensure a proctoring session exists
         let sessionRes = await query(

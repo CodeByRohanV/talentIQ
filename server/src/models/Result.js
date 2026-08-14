@@ -75,6 +75,12 @@ export const findResultsByAssessmentIds = async (assessmentIds) => {
 export const findDetailedResponsesByCandidateId = async (candidateId) => {
     const result = await query(
         `SELECT
+            q.question_type,
+            q.max_score,
+            r.id AS response_id,
+            r.text_answer,
+            r.manual_score,
+            r.grader_feedback,
             COALESCE(q.question_text, '[Deleted Question]') AS question_text,
             COALESCE(q.options, '[]'::jsonb)               AS options,
             q.correct_answer,
@@ -98,6 +104,12 @@ export const findAllDetailedResponsesByAssessmentId = async (assessmentId) => {
     const result = await query(
         `SELECT
             c.id AS candidate_id,
+            q.question_type,
+            q.max_score,
+            r.id AS response_id,
+            r.text_answer,
+            r.manual_score,
+            r.grader_feedback,
             COALESCE(q.question_text, '[Deleted Question]') AS question_text,
             COALESCE(q.options, '[]'::jsonb)               AS options,
             q.correct_answer,

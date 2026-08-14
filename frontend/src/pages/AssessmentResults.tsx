@@ -67,6 +67,7 @@ interface DetailedResponse {
   domain: string;
   difficulty: string;
   answeredAt: string;
+  max_score?: number;
 }
 
 interface CandidateResult {

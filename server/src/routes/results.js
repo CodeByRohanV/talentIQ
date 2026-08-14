@@ -13,5 +13,6 @@ router.get('/candidate/:candidateId', requirePermission('view_reports'), resultC
 router.get('/candidate/:candidateId/detailed', requirePermission('view_reports'), resultController.getDetailedResult);
 router.get('/assessment/:assessmentId', requirePermission('view_reports'), resultController.getResultsByAssessment);
 router.get('/assessment/:assessmentId/detailed', requirePermission('view_reports'), resultController.getDetailedResultsByAssessment);
+router.put('/responses/:responseId/grade', requirePermission('view_reports'), resultController.gradeResponse);
 
 export default router;

@@ -53,7 +53,8 @@ import {
   Cpu,
   Layers,
   Sparkles,
-  Pencil
+  Pencil,
+  Plus
 } from 'lucide-react';
 import QuestionDetailDialog from '@/components/questions/QuestionDetailDialog';
 import DeleteConfirmDialog from '@/components/questions/DeleteConfirmDialog';
@@ -78,6 +79,7 @@ interface Question {
   options: string[];
   correct_answer: number;
   difficulty: string;
+  question_type?: string;
   created_at: string;
 }
 
@@ -296,6 +298,7 @@ export default function Questions() {
         options: Array.isArray(q.options) ? q.options : JSON.parse((q.options as string) || '[]'),
         correct_answer: q.correctAnswer,
         difficulty: q.difficulty,
+        question_type: q.questionType,
         created_at: q.createdAt,
       }));
 
@@ -359,6 +362,7 @@ export default function Questions() {
         options: Array.isArray(q.options) ? q.options : JSON.parse((q.options as string) || '[]'),
         correct_answer: q.correctAnswer,
         difficulty: q.difficulty,
+        question_type: q.questionType,
         created_at: q.createdAt,
       }));
       setQuestions(transformedData);
@@ -416,17 +420,34 @@ export default function Questions() {
       const domainName = values[domainIndex];
       const matchingDomain = domains.find(d => d.slug === domainSlug || d.name.toLowerCase() === domainName?.toLowerCase());
 
-      const correctAnswer = parseInt(values[correctIndex]);
-      if (isNaN(correctAnswer) || correctAnswer < 0 || correctAnswer > 3) continue;
       const cleanValue = (v: string) => v?.replace(/^"|"$/g, '') || '';
+      const questionText = cleanValue(values[questionIndex]);
+      const optionsArray = [cleanValue(values[optionAIndex]), cleanValue(values[optionBIndex]), cleanValue(values[optionCIndex]), cleanValue(values[optionDIndex])];
+      
+      let questionType = 'MULTIPLE_CHOICE';
+      const isOptionsEmpty = optionsArray.every(opt => opt === '');
+      const isSubjectiveText = /explain|describe|what is|how do you|why|scenario|write|compare|analyze|discuss|outline|list|summarize/i.test(questionText);
+      
+      if (isOptionsEmpty || isSubjectiveText) {
+          questionType = 'SUBJECTIVE';
+      }
+
+      let correctAnswer = parseInt(values[correctIndex]);
+      if (questionType === 'MULTIPLE_CHOICE') {
+          if (isNaN(correctAnswer) || correctAnswer < 0 || correctAnswer > 3) continue;
+      } else {
+          correctAnswer = 0; // Default or null equivalent for subjective
+      }
+
       parsed.push({
         domain: matchingDomain?.slug || domainSlug,
         domain_id: matchingDomain?.id,
         domain_name: matchingDomain?.name || domainName,
-        question_text: cleanValue(values[questionIndex]),
-        options: [cleanValue(values[optionAIndex]), cleanValue(values[optionBIndex]), cleanValue(values[optionCIndex]), cleanValue(values[optionDIndex])],
+        question_text: questionText,
+        options: optionsArray,
         correct_answer: correctAnswer,
         difficulty: difficultyIndex >= 0 ? cleanValue(values[difficultyIndex]) || 'medium' : 'medium',
+        question_type: questionType,
       });
     }
     return parsed;
@@ -564,6 +585,12 @@ export default function Questions() {
             )}
             {canWrite && (
               <div className="flex gap-2">
+                <Button 
+                  onClick={() => { setEditQuestion(null); setEditOpen(true); }}
+                  className="bg-primary hover:bg-primary/90 text-white shadow-sm"
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Add Question
+                </Button>
                 <Button variant="outline" onClick={downloadTemplate}>
                   <Upload className="mr-2 h-4 w-4 rotate-180" /> Download Template
                 </Button>
