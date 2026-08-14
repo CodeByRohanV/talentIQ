@@ -279,7 +279,10 @@ export const getTestByToken = async (req, res, next) => {
             const questionOrder = buildRandomizedQuestionOrder(rawQuestions);
             const optionOrderMap = buildRandomizedOptionOrder(rawQuestions);
             
-            const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+            let ipAddress = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+            if (typeof ipAddress === 'string' && ipAddress.includes(',')) {
+                ipAddress = ipAddress.split(',')[0].trim();
+            }
 
             attempt = await TestAttempt.createAttempt(
                 candidate.id,
