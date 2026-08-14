@@ -265,15 +265,27 @@ export const gradeResponse = async (req, res, next) => {
             `, [candidateId]);
             const unansweredQuestions = parseInt(unansweredQuery.rows[0].count || 0);
 
+            // Dynamically calculate correct answers count (including manually graded ones > 0)
+            const correctQuery = await query(`
+                SELECT COUNT(*) as count
+                FROM responses r
+                JOIN questions q ON r.question_id = q.id
+                WHERE r.candidate_id = $1 AND (
+                    (q.question_type = 'SUBJECTIVE' AND r.manual_score > 0) OR
+                    (q.question_type != 'SUBJECTIVE' AND r.selected_answer = q.correct_answer)
+                )
+            `, [candidateId]);
+            const correctAnswers = parseInt(correctQuery.rows[0].count || 0);
+
             // Fetch threshold to re-evaluate PASS/FAIL
             const assessmentQuery = await query(`SELECT thresholds FROM assessments WHERE id = (SELECT assessment_id FROM candidates WHERE id = $1)`, [candidateId]);
             const thresholds = assessmentQuery.rows[0].thresholds || { overall: 50 };
             const passed = overallScore >= (thresholds.overall || 50);
 
-            console.log(`GRADE RESPONSE DEBUG: Candidate ${candidateId}, Overall Score: ${overallScore}, Thresholds:`, thresholds, `Passed: ${passed}`);
+            console.log(`GRADE RESPONSE DEBUG: Candidate ${candidateId}, Overall Score: ${overallScore}, Thresholds:`, thresholds, `Passed: ${passed}, Correct: ${correctAnswers}`);
 
-            await query(`UPDATE results SET overall_score = $1, unanswered_questions = $2, passed = $3 WHERE candidate_id = $4`, [overallScore, unansweredQuestions, passed, candidateId]);
-            return res.json({ success: true, data: updatedResponse, overallScore, unansweredQuestions, passed });
+            await query(`UPDATE results SET overall_score = $1, unanswered_questions = $2, passed = $3, correct_answers = $4 WHERE candidate_id = $5`, [overallScore, unansweredQuestions, passed, correctAnswers, candidateId]);
+            return res.json({ success: true, data: updatedResponse, overallScore, unansweredQuestions, passed, correctAnswers });
         }
 
         res.json({ success: true, data: updatedResponse });

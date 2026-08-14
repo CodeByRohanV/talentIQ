@@ -247,42 +247,6 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                 </div>
               )}
 
-              {/* Domain Breakdown */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold flex items-center gap-2 border-b pb-2">
-                  <ClipboardList className="h-4 w-4 text-primary" />
-                  Domain-Wise Analysis
-                </h3>
-                <div className="grid gap-3">
-                  {candidate.domainScores && Object.entries(candidate.domainScores)
-                    .filter(([_, scoreData]) => {
-                      const total = typeof scoreData === 'object' ? (scoreData as any).total : 0;
-                      const percentage = typeof scoreData === 'object' ? (scoreData as any).percentage : scoreData;
-                      return (total && total > 0) || (percentage && percentage > 0);
-                    })
-                    .map(([domain, scoreData]) => {
-                    const isObject = typeof scoreData === 'object';
-                    const percentage = isObject ? (scoreData as any).percentage : scoreData;
-                    const correct = isObject ? (scoreData as any).correct : null;
-                    const total = isObject ? (scoreData as any).total : null;
-
-                    return (
-                      <div key={domain} className="p-4 bg-muted/20 rounded-xl border border-border/50">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-bold text-sm">{getDomainName(domain)}</span>
-                          <span className="font-black text-primary">{percentage}%</span>
-                        </div>
-                        <Progress value={percentage} className="h-2 mb-2" />
-                        {isObject && total > 0 && (
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-                            Performance: {correct} / {total} correct answers
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
 
               {/* Question Breakdown */}
               <div className="space-y-4 pt-4 border-t">
@@ -441,7 +405,7 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                                         setEditingGrades(prev => ({ ...prev, [item.responseId]: false }));
                                         
                                         if (typeof onGradeSaved === 'function') {
-                                          onGradeSaved(res.data?.overallScore || res.overallScore, res.data?.unansweredQuestions || res.unansweredQuestions, item.responseId, parsedScore, feedback, res.passed ?? res.data?.passed);
+                                          onGradeSaved(res.data?.overallScore || res.overallScore, res.data?.unansweredQuestions || res.unansweredQuestions, item.responseId, parsedScore, feedback, res.passed ?? res.data?.passed, res.correctAnswers ?? res.data?.correctAnswers);
                                         }
                                         
                                         setTimeout(() => { btn.innerText = originalText; btn.disabled = false; btn.classList.remove('bg-success'); }, 2000);
@@ -1123,7 +1087,7 @@ export default function AssessmentResults() {
               getDomainName={getDomainName} 
               onClose={() => setShowResultDialog(false)} 
               assessmentTitle={assessmentTitle}
-              onGradeSaved={(newScore: number, newUnanswered: number, responseId: string, parsedScore: number, feedback: string, newPassed?: boolean) => {
+              onGradeSaved={(newScore: number, newUnanswered: number, responseId: string, parsedScore: number, feedback: string, newPassed?: boolean, newCorrectAnswers?: number) => {
                 setDetailedResponses(prev => prev.map(r => 
                   r.responseId === responseId 
                     ? { ...r, manualScore: parsedScore, graderFeedback: feedback } 
@@ -1133,7 +1097,8 @@ export default function AssessmentResults() {
                   ...prev, 
                   overallScore: newScore,
                   unansweredQuestions: newUnanswered !== undefined ? newUnanswered : prev.unansweredQuestions,
-                  passed: newPassed !== undefined ? newPassed : prev.passed
+                  passed: newPassed !== undefined ? newPassed : prev.passed,
+                  correctAnswers: newCorrectAnswers !== undefined ? newCorrectAnswers : prev.correctAnswers
                 } : prev);
                 fetchResults();
               }}
