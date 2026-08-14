@@ -84,7 +84,7 @@ export const findDetailedResponsesByCandidateId = async (candidateId) => {
             COALESCE(q.question_text, '[Deleted Question]') AS question_text,
             COALESCE(q.options, '[]'::jsonb)               AS options,
             q.correct_answer,
-            COALESCE(q.domain::text, 'unknown')            AS domain,
+            COALESCE(d.name, q.domain::text, 'unknown')    AS domain,
             COALESCE(q.difficulty, 'unknown')              AS difficulty,
             r.selected_answer,
             r.answered_at,
@@ -92,6 +92,7 @@ export const findDetailedResponsesByCandidateId = async (candidateId) => {
          FROM candidates c
          JOIN assessment_questions aq ON c.assessment_id = aq.assessment_id
          LEFT JOIN questions q ON aq.question_id = q.id
+         LEFT JOIN domains d ON q.domain_id = d.id
          LEFT JOIN responses r ON r.question_id = aq.question_id AND r.candidate_id = c.id
          WHERE c.id = $1
          ORDER BY aq.question_order ASC NULLS LAST`,
@@ -113,7 +114,7 @@ export const findAllDetailedResponsesByAssessmentId = async (assessmentId) => {
             COALESCE(q.question_text, '[Deleted Question]') AS question_text,
             COALESCE(q.options, '[]'::jsonb)               AS options,
             q.correct_answer,
-            COALESCE(q.domain::text, 'unknown')            AS domain,
+            COALESCE(d.name, q.domain::text, 'unknown')    AS domain,
             COALESCE(q.difficulty, 'unknown')              AS difficulty,
             r.selected_answer,
             r.answered_at,
@@ -121,6 +122,7 @@ export const findAllDetailedResponsesByAssessmentId = async (assessmentId) => {
          FROM candidates c
          JOIN assessment_questions aq ON c.assessment_id = aq.assessment_id
          LEFT JOIN questions q ON aq.question_id = q.id
+         LEFT JOIN domains d ON q.domain_id = d.id
          LEFT JOIN responses r ON r.question_id = aq.question_id AND r.candidate_id = c.id
          WHERE c.assessment_id = $1 AND c.status = 'completed'
          ORDER BY c.id ASC, aq.question_order ASC NULLS LAST`,

@@ -161,6 +161,8 @@ export const updateAssessment = async (req, res, next) => {
         const { id } = req.params;
         const { tenantId, roles, permissions } = req.auth;
         const isSuperAdmin = roles.includes('SUPER_ADMIN');
+        const isTenantAdmin = roles.includes('ADMIN');
+        const hasFullAccess = isSuperAdmin || isTenantAdmin;
         const userPerms = permissions || [];
         const { 
             title, description, instructions, durationMinutes, isActive, 
@@ -170,17 +172,17 @@ export const updateAssessment = async (req, res, next) => {
         // Security Enforcement: Refined Granular Checks
         // 1. Scheduling / Timer Checks
         const isTouchingScheduling = durationMinutes !== undefined || availableFrom !== undefined || availableUntil !== undefined || expiresAt !== undefined;
-        if (isTouchingScheduling && !isSuperAdmin && !userPerms.includes('edit_assessment_scheduling')) {
+        if (isTouchingScheduling && !hasFullAccess && !userPerms.includes('edit_assessment_scheduling')) {
             return res.status(403).json({ success: false, message: 'Access Denied: Missing permission to modify assessment scheduling/timer.' });
         }
 
         // 2. Instructions Checks
-        if (instructions !== undefined && !isSuperAdmin && !userPerms.includes('edit_assessment_instructions')) {
+        if (instructions !== undefined && !hasFullAccess && !userPerms.includes('edit_assessment_instructions')) {
             return res.status(403).json({ success: false, message: 'Access Denied: Missing permission to modify assessment instructions.' });
         }
 
         // 3. Exam Security Checks
-        if (securityConfig !== undefined && !isSuperAdmin && !userPerms.includes('edit_assessment_security')) {
+        if (securityConfig !== undefined && !hasFullAccess && !userPerms.includes('edit_assessment_security')) {
             return res.status(403).json({ success: false, message: 'Access Denied: Missing permission to modify exam security settings.' });
         }
 

@@ -67,6 +67,7 @@ async function evaluateAndSaveResult(candidateId, assessmentId, attemptId, submi
     const questionMap = new Map(questions.map(q => [q.id, q]));
     const responseMap = new Map(responses.map(r => [r.question_id, r]));
 
+    let totalEarnedScore = 0;
     const domainScores = {};
     questions.forEach(q => {
         const dKey = q.domain_id || q.domain;
@@ -74,20 +75,38 @@ async function evaluateAndSaveResult(candidateId, assessmentId, attemptId, submi
         domainScores[dKey].total++;
 
         const response = responseMap.get(q.id);
-        if (response && response.selected_answer !== null && response.selected_answer !== undefined) {
-            if (response.selected_answer === q.correct_answer) {
-                stats.correctAnswers++;
-                domainScores[dKey].correct++;
+        if (response) {
+            if (q.question_type === 'SUBJECTIVE') {
+                if (response.text_answer && response.text_answer.trim() !== '') {
+                    // Answered, but pending manual grading
+                } else {
+                    stats.unansweredQuestions++;
+                }
             } else {
-                stats.incorrectAnswers++;
+                if (response.selected_answer !== null && response.selected_answer !== undefined) {
+                    if (response.selected_answer === q.correct_answer) {
+                        stats.correctAnswers++;
+                        domainScores[dKey].correct++;
+                        totalEarnedScore += (q.max_score || 1);
+                    } else {
+                        stats.incorrectAnswers++;
+                    }
+                } else {
+                    stats.unansweredQuestions++;
+                }
             }
         } else {
             stats.unansweredQuestions++;
         }
     });
 
-    const overallScore = stats.totalQuestions > 0
-        ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100)
+    let totalMaxScore = 0;
+    questions.forEach(q => {
+        totalMaxScore += (q.max_score || 1);
+    });
+
+    const overallScore = totalMaxScore > 0
+        ? Math.round((totalEarnedScore / totalMaxScore) * 100)
         : 0;
 
     const domainDetails = {};

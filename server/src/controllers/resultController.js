@@ -225,23 +225,48 @@ export const gradeResponse = async (req, res, next) => {
         // Fetch candidate result stats
         const result = await Result.findResultByCandidateId(candidateId);
         if (result) {
-            const manualScoreQuery = await query(`SELECT SUM(manual_score) as sum_manual FROM responses WHERE candidate_id = $1`, [candidateId]);
-            const manualScoreSum = parseFloat(manualScoreQuery.rows[0].sum_manual || 0);
-            
-            // Calculate total max score for the assessment dynamically
-            const assessmentId = result.assessment_id;
+            const pointsQuery = await query(`
+                SELECT 
+                    SUM(
+                        CASE 
+                            WHEN q.question_type = 'SUBJECTIVE' THEN COALESCE(r.manual_score, 0)
+                            WHEN r.selected_answer = q.correct_answer THEN COALESCE(q.max_score, 1)
+                            ELSE 0
+                        END
+                    ) as total_earned
+                FROM responses r
+                JOIN questions q ON r.question_id = q.id
+                WHERE r.candidate_id = $1
+            `, [candidateId]);
+            const totalEarned = parseFloat(pointsQuery.rows[0].total_earned || 0);
+
             const maxScoreQuery = await query(`
                 SELECT SUM(COALESCE(q.max_score, 1)) as total_max_score
                 FROM assessment_questions aq
                 JOIN questions q ON aq.question_id = q.id
-                WHERE aq.assessment_id = $1
-            `, [assessmentId]);
-            const totalMaxScore = parseFloat(maxScoreQuery.rows[0].total_max_score || result.total_questions || 1);
+                WHERE aq.assessment_id = (SELECT assessment_id FROM candidates WHERE id = $1)
+            `, [candidateId]);
+            const totalMaxScore = parseFloat(maxScoreQuery.rows[0].total_max_score || 1);
             
-            const correctAnswers = result.correct_answers || 0;
-            const overallScore = Math.min(100, Math.round(((correctAnswers + manualScoreSum) / totalMaxScore) * 100));
+            const overallScore = Math.min(100, Math.round((totalMaxScore > 0 ? (totalEarned / totalMaxScore) : 0) * 100));
 
-            await query(`UPDATE results SET overall_score = $1 WHERE candidate_id = $2`, [overallScore, candidateId]);
+            // Dynamically fix the unanswered count for legacy submissions
+            const unansweredQuery = await query(`
+                SELECT COUNT(*) as count
+                FROM assessment_questions aq
+                JOIN questions q ON aq.question_id = q.id
+                LEFT JOIN responses r ON aq.question_id = r.question_id AND r.candidate_id = $1
+                WHERE aq.assessment_id = (SELECT assessment_id FROM candidates WHERE id = $1)
+                AND (
+                    r.id IS NULL 
+                    OR (q.question_type = 'SUBJECTIVE' AND (r.text_answer IS NULL OR TRIM(r.text_answer) = ''))
+                    OR (q.question_type != 'SUBJECTIVE' AND r.selected_answer IS NULL)
+                )
+            `, [candidateId]);
+            const unansweredQuestions = parseInt(unansweredQuery.rows[0].count || 0);
+
+            await query(`UPDATE results SET overall_score = $1, unanswered_questions = $2 WHERE candidate_id = $3`, [overallScore, unansweredQuestions, candidateId]);
+            return res.json({ success: true, data: updatedResponse, overallScore, unansweredQuestions });
         }
 
         res.json({ success: true, data: updatedResponse });

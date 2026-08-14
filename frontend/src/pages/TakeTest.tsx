@@ -869,10 +869,15 @@ export default function TakeTest() {
             <Card className={cn("transition-all duration-200 border-2", (allVisited && !currentResponse?.selectedAnswer) ? "border-destructive/30 shadow-destructive/5" : "border-transparent")}>
               <CardHeader>
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <Badge variant="secondary" className="px-3 py-1 bg-primary/10 text-primary border-primary/20">
-                      {currentQuestion.domain_name || currentQuestion.domain.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </Badge>
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="px-3 py-1 bg-primary/10 text-primary border-primary/20">
+                        {currentQuestion.domain_name || currentQuestion.domain.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </Badge>
+                      <Badge variant="outline" className="px-3 py-1 border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 font-semibold tracking-wide shadow-sm">
+                        Score: {currentQuestion.max_score || 1}
+                      </Badge>
+                    </div>
                     <p className="text-xl font-medium leading-relaxed">{currentQuestion.questionText}</p>
                   </div>
                   <Button variant={currentResponse?.isFlagged ? 'default' : 'outline'} size="icon" onClick={() => toggleFlag(currentQuestion.id)} className={cn(currentResponse?.isFlagged && "bg-warning hover:bg-warning/90 border-warning")}>

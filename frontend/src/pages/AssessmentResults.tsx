@@ -99,7 +99,9 @@ interface Domain {
 }
 
 
-const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, getDomainName, onClose, assessmentTitle }: any) => {
+const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, getDomainName, onClose, assessmentTitle, onGradeSaved }: any) => {
+  const [editingGrades, setEditingGrades] = useState<Record<string, boolean>>({});
+
   return (
     <div className="space-y-8 py-4" >
               {/* Header Info - Using Table for PDF stability */}
@@ -316,36 +318,36 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-start gap-4">
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold bg-muted-foreground/10 text-muted-foreground px-1.5 py-0.5 rounded uppercase">
+                              <Badge variant="secondary" className="text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 px-2 py-0.5 uppercase border-transparent rounded-md">
                                 Q{idx + 1}
-                              </span>
-                              <span className="text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">
+                              </Badge>
+                              <Badge variant="secondary" className="text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 px-2 py-0.5 uppercase border-transparent rounded-md">
                                 {getDomainName(item.domain)}
-                              </span>
+                              </Badge>
                               {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer === null && (
-                                <div style={{ fontSize: '9px', fontWeight: '900', color: '#b45309', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                <Badge variant="outline" className="text-[9px] font-black text-amber-700 bg-amber-100 border-amber-300 px-2 py-0.5 uppercase tracking-wide rounded-md">
                                   NOT ANSWERED
-                                </div>
+                                </Badge>
                               )}
                               {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer === item.correctAnswer && (
-                                <div style={{ fontSize: '9px', fontWeight: '900', color: 'white', backgroundColor: '#10b981', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                <Badge className="text-[9px] font-black text-white bg-emerald-500 hover:bg-emerald-600 px-2 py-0.5 border-transparent uppercase tracking-wide rounded-md">
                                   CORRECT
-                                </div>
+                                </Badge>
                               )}
                               {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer !== null && item.selectedAnswer !== item.correctAnswer && (
-                                <div style={{ fontSize: '9px', fontWeight: '900', color: 'white', backgroundColor: '#ef4444', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                <Badge className="text-[9px] font-black text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 border-transparent uppercase tracking-wide rounded-md">
                                   INCORRECT
-                                </div>
+                                </Badge>
                               )}
                               {item.questionType === 'SUBJECTIVE' && item.manualScore !== null && (
-                                <div style={{ fontSize: '9px', fontWeight: '900', color: 'white', backgroundColor: '#3b82f6', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                <Badge className="text-[9px] font-black text-white bg-blue-500 hover:bg-blue-600 px-2 py-0.5 border-transparent uppercase tracking-wide rounded-md">
                                   GRADED: {item.manualScore}
-                                </div>
+                                </Badge>
                               )}
                               {item.questionType === 'SUBJECTIVE' && item.manualScore === null && (
-                                <div style={{ fontSize: '9px', fontWeight: '900', color: '#b45309', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                <Badge variant="outline" className="text-[9px] font-black text-amber-700 bg-amber-100 border-amber-300 px-2 py-0.5 uppercase tracking-wide rounded-md">
                                   NEEDS GRADING
-                                </div>
+                                </Badge>
                               )}
                             </div>
                             <Badge variant="outline" className="text-[10px] capitalize">
@@ -362,58 +364,101 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                               <div className="p-4 bg-muted/30 border rounded-lg whitespace-pre-wrap">
                                 {item.textAnswer || <span className="text-muted-foreground italic">No text answer provided.</span>}
                               </div>
-                              <div className="flex flex-col gap-4 p-4 border border-blue-100 bg-blue-50/5 rounded-lg">
-                                <h4 className="text-sm font-semibold flex items-center gap-2"><Trophy className="w-4 h-4 text-blue-500" /> Manual Grading</h4>
-                                <div className="flex gap-4 items-start">
-                                  <div className="space-y-2 flex-1">
-                                    <Label className="text-xs font-semibold">Grader Feedback</Label>
-                                    <textarea 
-                                      className="w-full p-3 min-h-[80px] border rounded-lg text-sm bg-background" 
-                                      placeholder="Enter feedback for the candidate..." 
+                              {item.manualScore !== null && item.manualScore !== undefined && !editingGrades[item.responseId] ? (
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-green-200 bg-green-50/30 rounded-lg gap-4">
+                                  <div className="flex items-start sm:items-center gap-3">
+                                    <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                                      <Trophy className="w-4 h-4 text-green-600" />
+                                    </div>
+                                    <div>
+                                      <h4 className="text-sm font-bold text-green-900">Graded: {item.manualScore} / {item.max_score || 1}</h4>
+                                      {item.graderFeedback && <p className="text-xs text-green-700/80 mt-0.5 whitespace-pre-wrap">"{item.graderFeedback}"</p>}
+                                    </div>
+                                  </div>
+                                  <Button size="sm" variant="outline" className="h-8 text-xs font-semibold bg-white shrink-0" onClick={() => {
+                                    setEditingGrades(prev => ({ ...prev, [item.responseId]: true }));
+                                  }}>
+                                    Edit Grade
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 mt-2 border rounded-xl bg-slate-50/50 dark:bg-slate-900/30 flex-wrap">
+                                  <div className="flex-1 w-full min-w-[200px]">
+                                    <Input 
+                                      className="w-full h-9 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-sm" 
+                                      placeholder="Add optional feedback..." 
                                       defaultValue={item.graderFeedback || ''}
                                       id={`feedback-${item.responseId}`}
                                     />
                                   </div>
-                                  <div className="space-y-2 w-32">
-                                    <Label className="text-xs font-semibold">Score (0 to {item.max_score || 1})</Label>
-                                    <Input 
-                                      type="number" 
-                                      min="0" 
-                                      max={item.max_score || 1} 
-                                      step="0.5" 
-                                      defaultValue={item.manualScore ?? ''} 
-                                      id={`score-${item.responseId}`}
-                                    />
-                                  </div>
-                                  <Button className="mt-6" onClick={async (e) => {
-                                    const btn = e.currentTarget;
-                                    const feedback = (document.getElementById(`feedback-${item.responseId}`) as HTMLTextAreaElement)?.value;
-                                    const score = (document.getElementById(`score-${item.responseId}`) as HTMLInputElement)?.value;
-                                    if (score === '') return;
+                                  
+                                  <div className="flex items-center gap-4 shrink-0 flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Points:</span>
+                                      <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 px-2.5 py-1 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
+                                        <Input 
+                                          type="number" 
+                                          className="w-14 h-7 text-center font-bold p-0 border-none shadow-none focus-visible:ring-0 bg-transparent text-base [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                          min="0" 
+                                          max={item.max_score || 1} 
+                                          step="0.5" 
+                                          defaultValue={item.manualScore ?? ''} 
+                                          id={`score-${item.responseId}`}
+                                          onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            const max = item.max_score || 1;
+                                            if (!isNaN(val)) {
+                                              if (val > max) e.target.value = max.toString();
+                                              if (val < 0) e.target.value = "0";
+                                            }
+                                          }}
+                                        />
+                                        <span className="text-slate-400 font-medium select-none text-sm pr-1">/ {item.max_score || 1}</span>
+                                      </div>
+                                    </div>
+                                    <Button size="sm" className="h-9 px-5 shadow-sm shrink-0 font-semibold" onClick={async (e) => {
+                                      const btn = e.currentTarget;
+                                      const feedback = (document.getElementById(`feedback-${item.responseId}`) as HTMLInputElement)?.value;
+                                      const score = (document.getElementById(`score-${item.responseId}`) as HTMLInputElement)?.value;
+                                      if (score === '') return;
 
-                                    const parsedScore = parseFloat(score);
-                                    const maxScore = item.max_score || 1;
-                                    if (parsedScore < 0 || parsedScore > maxScore) {
-                                      alert(`Score must be between 0 and ${maxScore}`);
-                                      return;
-                                    }
-                                    
-                                    const originalText = btn.innerText;
-                                    btn.innerText = 'Saving...';
-                                    btn.disabled = true;
-                                    try {
-                                      await resultsAPI.gradeResponse(item.responseId, parsedScore, feedback);
-                                      btn.innerText = 'Saved!';
-                                      btn.classList.add('bg-success');
-                                      setTimeout(() => { btn.innerText = originalText; btn.disabled = false; btn.classList.remove('bg-success'); }, 2000);
-                                    } catch (err: any) {
-                                      alert('Error saving grade: ' + err.message);
-                                      btn.innerText = originalText;
-                                      btn.disabled = false;
-                                    }
-                                  }}>Save Grade</Button>
+                                      const parsedScore = parseFloat(score);
+                                      const maxScore = item.max_score || 1;
+                                      if (parsedScore < 0 || parsedScore > maxScore) {
+                                        toast({ title: 'Invalid Score', description: `Score cannot exceed the maximum marks of ${maxScore}.`, variant: 'destructive' });
+                                        return;
+                                      }
+                                      
+                                      const originalText = btn.innerText;
+                                      btn.innerText = 'Saving...';
+                                      btn.disabled = true;
+                                      try {
+                                        const res = await resultsAPI.gradeResponse(item.responseId, parsedScore, feedback);
+                                        btn.innerText = 'Saved!';
+                                        btn.classList.add('bg-success');
+                                        
+                                        // End edit mode locally so it flips to static view
+                                        setEditingGrades(prev => ({ ...prev, [item.responseId]: false }));
+                                        
+                                        if (typeof onGradeSaved === 'function') {
+                                          onGradeSaved(res.data?.overallScore || res.overallScore, res.data?.unansweredQuestions || res.unansweredQuestions, item.responseId, parsedScore, feedback);
+                                        }
+                                        
+                                        setTimeout(() => { btn.innerText = originalText; btn.disabled = false; btn.classList.remove('bg-success'); }, 2000);
+                                      } catch (err: any) {
+                                        alert('Error saving grade: ' + err.message);
+                                        btn.innerText = originalText;
+                                        btn.disabled = false;
+                                      }
+                                    }}>Save Grade</Button>
+                                    {item.manualScore !== null && item.manualScore !== undefined && (
+                                      <Button size="sm" variant="ghost" className="h-9 shrink-0 text-muted-foreground" onClick={() => {
+                                        setEditingGrades(prev => ({ ...prev, [item.responseId]: false }));
+                                      }}>Cancel</Button>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
                           ) : (
                             <div className="grid gap-2">
@@ -1078,6 +1123,19 @@ export default function AssessmentResults() {
               getDomainName={getDomainName} 
               onClose={() => setShowResultDialog(false)} 
               assessmentTitle={assessmentTitle}
+              onGradeSaved={(newScore: number, newUnanswered: number, responseId: string, parsedScore: number, feedback: string) => {
+                setDetailedResponses(prev => prev.map(r => 
+                  r.responseId === responseId 
+                    ? { ...r, manualScore: parsedScore, graderFeedback: feedback } 
+                    : r
+                ));
+                setSelectedCandidate(prev => prev ? { 
+                  ...prev, 
+                  overallScore: newScore,
+                  unansweredQuestions: newUnanswered !== undefined ? newUnanswered : prev.unansweredQuestions 
+                } : prev);
+                fetchResults();
+              }}
             /></div>
           )}
         </DialogContent>

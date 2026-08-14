@@ -58,7 +58,7 @@ interface QuestionForm {
     difficulty: string;
     correctAnswer: number;
     options: string[];
-    maxScore: number;
+    maxScore: number | '';
 }
 
 export default function EditQuestionDialog({
@@ -123,7 +123,7 @@ export default function EditQuestionDialog({
                     difficulty: form.difficulty,
                     correctAnswer: form.correctAnswer,
                     options: form.options,
-                    max_score: form.maxScore
+                    max_score: typeof form.maxScore === 'number' ? form.maxScore : 1
                 };
                 await questionsAPI.update(question.id, payload);
                 toast({ title: 'Question updated', description: 'Changes saved successfully.' });
@@ -135,7 +135,7 @@ export default function EditQuestionDialog({
                     difficulty: form.difficulty,
                     correctAnswer: form.correctAnswer,
                     options: form.options,
-                    max_score: form.maxScore
+                    max_score: typeof form.maxScore === 'number' ? form.maxScore : 1
                 })));
                 toast({ title: 'Questions created', description: `${forms.length} new question(s) added successfully.` });
             }
@@ -288,7 +288,10 @@ export default function EditQuestionDialog({
                                                     min="1"
                                                     className="h-10 w-32 focus-visible:ring-2 focus-visible:ring-primary/20"
                                                     value={formData.maxScore}
-                                                    onChange={(e) => updateForm(formIndex, { maxScore: parseInt(e.target.value) || 1 })}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        updateForm(formIndex, { maxScore: val === '' ? '' : parseInt(val) });
+                                                    }}
                                                     required
                                                 />
                                             </motion.div>

@@ -106,6 +106,7 @@ export function applyRandomization(questions, questionOrder, optionOrderMap) {
             questionText: q.question_text,
             question_type: q.question_type || 'MULTIPLE_CHOICE',
             difficulty: q.difficulty,
+            max_score: q.max_score,
             options: displayOptions,          // shuffled options — no correct_answer
             displayPosition,                  // 0-based position in this candidate's view
             // NOTE: correct_answer is intentionally omitted here
