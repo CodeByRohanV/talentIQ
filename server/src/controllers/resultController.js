@@ -1,5 +1,7 @@
 import * as Result from '../models/Result.js';
 import * as Assessment from '../models/Assessment.js';
+import * as Response from '../models/Response.js';
+import { query } from '../config/database.js';
 import { processAllExpiredTests } from './testController.js';
 
 export const getResults = async (req, res, next) => {
@@ -131,10 +133,15 @@ export const getDetailedResult = async (req, res, next) => {
         res.json({
             success: true,
             data: responses.map(r => ({
+                responseId: r.response_id,
+                questionType: r.question_type || 'MULTIPLE_CHOICE',
                 questionText: r.question_text,
                 options: r.options,
                 correctAnswer: r.correct_answer,
                 selectedAnswer: r.selected_answer,
+                textAnswer: r.text_answer,
+                manualScore: r.manual_score,
+                graderFeedback: r.grader_feedback,
                 domain: r.domain,
                 difficulty: r.difficulty,
                 answeredAt: r.answered_at,
@@ -158,10 +165,15 @@ export const getDetailedResultsByAssessment = async (req, res, next) => {
                 grouped[r.candidate_id] = [];
             }
             grouped[r.candidate_id].push({
+                responseId: r.response_id,
+                questionType: r.question_type || 'MULTIPLE_CHOICE',
                 questionText: r.question_text,
                 options: r.options,
                 correctAnswer: r.correct_answer,
                 selectedAnswer: r.selected_answer,
+                textAnswer: r.text_answer,
+                manualScore: r.manual_score,
+                graderFeedback: r.grader_feedback,
                 domain: r.domain,
                 difficulty: r.difficulty,
                 answeredAt: r.answered_at,
@@ -173,6 +185,64 @@ export const getDetailedResultsByAssessment = async (req, res, next) => {
             success: true,
             data: grouped
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const gradeResponse = async (req, res, next) => {
+    try {
+        const { responseId } = req.params;
+        const { manualScore, graderFeedback } = req.body;
+
+        // Validation against max_score
+        if (manualScore !== undefined) {
+            const questionQuery = await query(`
+                SELECT q.max_score 
+                FROM responses r 
+                JOIN questions q ON r.question_id = q.id 
+                WHERE r.id = $1
+            `, [responseId]);
+
+            if (questionQuery.rows.length > 0) {
+                const maxScore = questionQuery.rows[0].max_score || 1;
+                if (manualScore < 0 || manualScore > maxScore) {
+                    return res.status(400).json({ success: false, message: `Score must be between 0 and ${maxScore}` });
+                }
+            }
+        }
+
+        const updatedResponse = await Response.updateGrade(responseId, manualScore, graderFeedback);
+
+        if (!updatedResponse) {
+            return res.status(404).json({ success: false, message: 'Response not found' });
+        }
+
+        const candidateId = updatedResponse.candidate_id;
+
+        // Fetch candidate result stats
+        const result = await Result.findResultByCandidateId(candidateId);
+        if (result) {
+            const manualScoreQuery = await query(`SELECT SUM(manual_score) as sum_manual FROM responses WHERE candidate_id = $1`, [candidateId]);
+            const manualScoreSum = parseFloat(manualScoreQuery.rows[0].sum_manual || 0);
+            
+            // Calculate total max score for the assessment dynamically
+            const assessmentId = result.assessment_id;
+            const maxScoreQuery = await query(`
+                SELECT SUM(COALESCE(q.max_score, 1)) as total_max_score
+                FROM assessment_questions aq
+                JOIN questions q ON aq.question_id = q.id
+                WHERE aq.assessment_id = $1
+            `, [assessmentId]);
+            const totalMaxScore = parseFloat(maxScoreQuery.rows[0].total_max_score || result.total_questions || 1);
+            
+            const correctAnswers = result.correct_answers || 0;
+            const overallScore = Math.min(100, Math.round(((correctAnswers + manualScoreSum) / totalMaxScore) * 100));
+
+            await query(`UPDATE results SET overall_score = $1 WHERE candidate_id = $2`, [overallScore, candidateId]);
+        }
+
+        res.json({ success: true, data: updatedResponse });
     } catch (error) {
         next(error);
     }

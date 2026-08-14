@@ -5,7 +5,7 @@ import { query } from '../config/database.js';
 
 export const getQuestions = async (req, res, next) => {
     try {
-        const { domain, domainId, difficulty, search, page = 1, limit = 10 } = req.query;
+        const { domain, domainId, difficulty, search, page = 1, limit = 10, questionType } = req.query;
         const { userId, tenantId, roles, managerId, domainId: userDomainId } = req.auth;
 
         // Always resolve fresh managerId from DB for Recruiters/Managers to prevent visibility issues
@@ -27,6 +27,7 @@ export const getQuestions = async (req, res, next) => {
         if (domain) filters.domain = domain;
         if (domainId) filters.domainId = domainId;
         if (difficulty) filters.difficulty = difficulty;
+        if (questionType) filters.questionType = questionType;
 
         let questions;
         let total;
@@ -53,6 +54,7 @@ export const getQuestions = async (req, res, next) => {
                 options: q.options,
                 correctAnswer: q.correct_answer,
                 difficulty: q.difficulty,
+                questionType: q.question_type,
                 createdAt: q.created_at
             }))
         });
@@ -63,7 +65,7 @@ export const getQuestions = async (req, res, next) => {
 
 export const createQuestion = async (req, res, next) => {
     try {
-        const { domain, domainId, questionText, options, correctAnswer, difficulty } = req.body;
+        const { domain, domainId, questionText, options, correctAnswer, difficulty, question_type, max_score } = req.body;
         const { userId, tenantId, roles } = req.auth;
 
         // Resolve fresh managerId
@@ -74,10 +76,17 @@ export const createQuestion = async (req, res, next) => {
         }
 
         // Validate input
-        if ((!domain && !domainId) || !questionText || !options || correctAnswer === undefined) {
+        if ((!domain && !domainId) || !questionText) {
             return res.status(400).json({
                 success: false,
-                message: 'Domain (or domainId), question text, options, and correct answer are required'
+                message: 'Domain (or domainId) and question text are required'
+            });
+        }
+        
+        if (question_type !== 'SUBJECTIVE' && (!options || correctAnswer === undefined)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Options and correct answer are required for multiple choice questions'
             });
         }
 
@@ -86,11 +95,13 @@ export const createQuestion = async (req, res, next) => {
             tenantId,
             domain || null,
             questionText,
-            options,
-            correctAnswer,
+            options || [],
+            correctAnswer !== undefined ? correctAnswer : null,
             difficulty,
             domainId || null,
-            currentManagerId
+            currentManagerId,
+            question_type || 'MULTIPLE_CHOICE',
+            max_score || 1
         );
 
         res.status(201).json({
@@ -149,9 +160,11 @@ export const bulkCreateQuestions = async (req, res, next) => {
                 domain: domainSlug || null,
                 domain_id: domainId || null,
                 question_text: q.questionText || q.question_text,
-                options: q.options,
-                correct_answer: q.correctAnswer !== undefined ? q.correctAnswer : q.correct_answer,
-                difficulty: q.difficulty || 'medium'
+                options: q.options || [],
+                correct_answer: q.correctAnswer !== undefined ? q.correctAnswer : (q.correct_answer !== undefined ? q.correct_answer : null),
+                difficulty: q.difficulty || 'medium',
+                question_type: q.questionType || q.question_type || 'MULTIPLE_CHOICE',
+                max_score: q.maxScore !== undefined ? q.maxScore : (q.max_score !== undefined ? q.max_score : 1)
             });
         }
 
@@ -202,7 +215,7 @@ export const deleteQuestion = async (req, res, next) => {
 export const updateQuestion = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { domain, domainId, questionText, options, correctAnswer, difficulty } = req.body;
+        const { domain, domainId, questionText, options, correctAnswer, difficulty, question_type, max_score } = req.body;
         const { tenantId, roles } = req.auth;
         const isSuperAdmin = roles.includes('SUPER_ADMIN');
         // #region agent log
@@ -215,7 +228,9 @@ export const updateQuestion = async (req, res, next) => {
             question_text: questionText,
             options,
             correct_answer: correctAnswer,
-            difficulty
+            difficulty,
+            question_type,
+            max_score
         };
 
         // Sync domain slug if only id is provided

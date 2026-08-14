@@ -50,6 +50,12 @@ export const findQuestionsByTenantId = async (tenantId, filters = {}) => {
         paramCount++;
     }
 
+    if (filters.questionType) {
+        queryText += ` AND q.question_type = $${paramCount}`;
+        params.push(filters.questionType);
+        paramCount++;
+    }
+
     if (filters.search) {
         queryText += ` AND q.question_text ILIKE $${paramCount}`;
         params.push(`%${filters.search}%`);
@@ -71,12 +77,12 @@ export const findQuestionsByTenantId = async (tenantId, filters = {}) => {
     return result.rows;
 };
 
-export const createQuestion = async (userId, tenantId, domain, questionText, options, correctAnswer, difficulty = 'medium', domainId = null, managerId = null) => {
+export const createQuestion = async (userId, tenantId, domain, questionText, options, correctAnswer, difficulty = 'medium', domainId = null, managerId = null, questionType = 'MULTIPLE_CHOICE', maxScore = 1) => {
     const result = await query(
-        `INSERT INTO questions (created_by, domain, question_text, options, correct_answer, difficulty, domain_id, created_by_manager_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `INSERT INTO questions (created_by, domain, question_text, options, correct_answer, difficulty, domain_id, created_by_manager_id, question_type, max_score)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING *`,
-        [userId, domain, questionText, JSON.stringify(options), correctAnswer, difficulty, domainId, managerId || userId]
+        [userId, domain, questionText, JSON.stringify(options), correctAnswer, difficulty, domainId, managerId || userId, questionType, maxScore]
     );
     return result.rows[0];
 };
@@ -157,6 +163,12 @@ export const findAllQuestions = async (filters = {}) => {
         paramCount++;
     }
 
+    if (filters.questionType) {
+        queryText += ` AND q.question_type = $${paramCount}`;
+        params.push(filters.questionType);
+        paramCount++;
+    }
+
     if (filters.search) {
         queryText += ` AND q.question_text ILIKE $${paramCount}`;
         params.push(`%${filters.search}%`);
@@ -221,6 +233,12 @@ export const countQuestions = async (tenantId = null, filters = {}) => {
         paramCount++;
     }
 
+    if (filters.questionType) {
+        queryText += ` AND q.question_type = $${paramCount}`;
+        params.push(filters.questionType);
+        paramCount++;
+    }
+
     if (filters.search) {
         queryText += ` AND q.question_text ILIKE $${paramCount++}`;
         params.push(`%${filters.search}%`);
@@ -278,6 +296,14 @@ export const updateQuestion = async (id, tenantId, updates) => {
     if (updates.difficulty !== undefined) {
         fields.push(`difficulty = $${paramCount++}`);
         values.push(updates.difficulty);
+    }
+    if (updates.question_type !== undefined) {
+        fields.push(`question_type = $${paramCount++}`);
+        values.push(updates.question_type);
+    }
+    if (updates.max_score !== undefined) {
+        fields.push(`max_score = $${paramCount++}`);
+        values.push(updates.max_score);
     }
 
     if (fields.length === 0) return null;
@@ -408,8 +434,8 @@ export const bulkCreateQuestions = async (questions, tenantId, managerId = null)
     const placeholders = [];
 
     questions.forEach((q, index) => {
-        const offset = index * 8;
-        placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8})`);
+        const offset = index * 10;
+        placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10})`);
         values.push(
             q.userId,
             q.domain,
@@ -418,12 +444,14 @@ export const bulkCreateQuestions = async (questions, tenantId, managerId = null)
             q.correct_answer,
             q.difficulty || 'medium',
             q.domain_id || null,
-            managerId || q.userId
+            managerId || q.userId,
+            q.question_type || 'MULTIPLE_CHOICE',
+            q.max_score || 1
         );
     });
 
     const result = await query(
-        `INSERT INTO questions (created_by, domain, question_text, options, correct_answer, difficulty, domain_id, created_by_manager_id)
+        `INSERT INTO questions (created_by, domain, question_text, options, correct_answer, difficulty, domain_id, created_by_manager_id, question_type, max_score)
          VALUES ${placeholders.join(', ')}
          RETURNING *`,
         values

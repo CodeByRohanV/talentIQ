@@ -8,6 +8,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -54,10 +55,15 @@ import { assessmentsAPI, candidatesAPI, resultsAPI, domainsAPI } from '@/lib/api
 import { format } from 'date-fns';
 
 interface DetailedResponse {
+  responseId: string;
+  questionType: string;
   questionText: string;
   options: string[];
   correctAnswer: number;
   selectedAnswer: number | null;
+  textAnswer: string | null;
+  manualScore: number | null;
+  graderFeedback: string | null;
   domain: string;
   difficulty: string;
   answeredAt: string;
@@ -298,11 +304,13 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                     {detailedResponses.map((item, idx) => (
                       <Card key={idx} className={cn(
                         "shadow-none border-l-4",
-                        item.selectedAnswer === item.correctAnswer 
-                          ? "border-l-success bg-success/5" 
-                          : item.selectedAnswer === null 
-                            ? "border-l-amber-500 bg-amber-50/30" 
-                            : "border-l-destructive bg-destructive/5"
+                        item.questionType === 'SUBJECTIVE'
+                          ? "border-l-blue-500 bg-blue-50/10"
+                          : item.selectedAnswer === item.correctAnswer 
+                            ? "border-l-success bg-success/5" 
+                            : item.selectedAnswer === null 
+                              ? "border-l-amber-500 bg-amber-50/30" 
+                              : "border-l-destructive bg-destructive/5"
                       )}>
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-start gap-4">
@@ -313,19 +321,29 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                               <span className="text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">
                                 {getDomainName(item.domain)}
                               </span>
-                              {item.selectedAnswer === null && (
+                              {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer === null && (
                                 <div style={{ fontSize: '9px', fontWeight: '900', color: '#b45309', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
                                   NOT ANSWERED
                                 </div>
                               )}
-                              {item.selectedAnswer === item.correctAnswer && (
+                              {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer === item.correctAnswer && (
                                 <div style={{ fontSize: '9px', fontWeight: '900', color: 'white', backgroundColor: '#10b981', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
                                   CORRECT
                                 </div>
                               )}
-                              {item.selectedAnswer !== null && item.selectedAnswer !== item.correctAnswer && (
+                              {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer !== null && item.selectedAnswer !== item.correctAnswer && (
                                 <div style={{ fontSize: '9px', fontWeight: '900', color: 'white', backgroundColor: '#ef4444', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
                                   INCORRECT
+                                </div>
+                              )}
+                              {item.questionType === 'SUBJECTIVE' && item.manualScore !== null && (
+                                <div style={{ fontSize: '9px', fontWeight: '900', color: 'white', backgroundColor: '#3b82f6', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                  GRADED: {item.manualScore}
+                                </div>
+                              )}
+                              {item.questionType === 'SUBJECTIVE' && item.manualScore === null && (
+                                <div style={{ fontSize: '9px', fontWeight: '900', color: '#b45309', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                  NEEDS GRADING
                                 </div>
                               )}
                             </div>
@@ -338,47 +356,107 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 pt-2">
-                          <div className="grid gap-2">
-                            {item.options.map((option, optIdx) => (
-                              <div 
-                                key={optIdx} 
-                                className={cn(
-                                  "p-3 rounded-lg text-sm border flex items-center justify-between",
-                                  optIdx === item.correctAnswer 
-                                    ? "bg-success/10 border-success/30 text-success font-medium" 
-                                    : optIdx === item.selectedAnswer 
-                                      ? "bg-destructive/10 border-destructive/30 text-destructive font-medium" 
-                                      : "bg-background border-border"
-                                )}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <span className={cn(
-                                    "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
-                                    optIdx === item.correctAnswer ? "bg-success text-white" : "bg-muted"
-                                  )}>
-                                    {String.fromCharCode(65 + optIdx)}
-                                  </span>
-                                  {option}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {optIdx === item.correctAnswer && (
-                                    <span className="text-[9px] font-black uppercase text-success mr-2">Correct Answer</span>
-                                  )}
-                                  {optIdx === item.selectedAnswer && (
-                                    <span className={cn(
-                                      "text-[9px] font-black uppercase mr-2",
-                                      optIdx === item.correctAnswer ? "text-success" : "text-destructive"
-                                    )}>
-                                      {optIdx === item.correctAnswer ? "Your Choice" : "Candidate Selection"}
-                                    </span>
-                                  )}
-                                  {optIdx === item.correctAnswer && <CheckCircle className="h-4 w-4 shrink-0" />}
-                                  {optIdx === item.selectedAnswer && optIdx !== item.correctAnswer && <XCircleIcon className="h-4 w-4 shrink-0" />}
+                          {(item.questionType === 'SUBJECTIVE' || item.question_type === 'SUBJECTIVE') ? (
+                            <div className="space-y-4">
+                              <div className="p-4 bg-muted/30 border rounded-lg whitespace-pre-wrap">
+                                {item.textAnswer || <span className="text-muted-foreground italic">No text answer provided.</span>}
+                              </div>
+                              <div className="flex flex-col gap-4 p-4 border border-blue-100 bg-blue-50/5 rounded-lg">
+                                <h4 className="text-sm font-semibold flex items-center gap-2"><Trophy className="w-4 h-4 text-blue-500" /> Manual Grading</h4>
+                                <div className="flex gap-4 items-start">
+                                  <div className="space-y-2 flex-1">
+                                    <Label className="text-xs font-semibold">Grader Feedback</Label>
+                                    <textarea 
+                                      className="w-full p-3 min-h-[80px] border rounded-lg text-sm bg-background" 
+                                      placeholder="Enter feedback for the candidate..." 
+                                      defaultValue={item.graderFeedback || ''}
+                                      id={`feedback-${item.responseId}`}
+                                    />
+                                  </div>
+                                  <div className="space-y-2 w-32">
+                                    <Label className="text-xs font-semibold">Score (0 to {item.max_score || 1})</Label>
+                                    <Input 
+                                      type="number" 
+                                      min="0" 
+                                      max={item.max_score || 1} 
+                                      step="0.5" 
+                                      defaultValue={item.manualScore ?? ''} 
+                                      id={`score-${item.responseId}`}
+                                    />
+                                  </div>
+                                  <Button className="mt-6" onClick={async (e) => {
+                                    const btn = e.currentTarget;
+                                    const feedback = (document.getElementById(`feedback-${item.responseId}`) as HTMLTextAreaElement)?.value;
+                                    const score = (document.getElementById(`score-${item.responseId}`) as HTMLInputElement)?.value;
+                                    if (score === '') return;
+
+                                    const parsedScore = parseFloat(score);
+                                    const maxScore = item.max_score || 1;
+                                    if (parsedScore < 0 || parsedScore > maxScore) {
+                                      alert(`Score must be between 0 and ${maxScore}`);
+                                      return;
+                                    }
+                                    
+                                    const originalText = btn.innerText;
+                                    btn.innerText = 'Saving...';
+                                    btn.disabled = true;
+                                    try {
+                                      await resultsAPI.gradeResponse(item.responseId, parsedScore, feedback);
+                                      btn.innerText = 'Saved!';
+                                      btn.classList.add('bg-success');
+                                      setTimeout(() => { btn.innerText = originalText; btn.disabled = false; btn.classList.remove('bg-success'); }, 2000);
+                                    } catch (err: any) {
+                                      alert('Error saving grade: ' + err.message);
+                                      btn.innerText = originalText;
+                                      btn.disabled = false;
+                                    }
+                                  }}>Save Grade</Button>
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                          {item.selectedAnswer === null && (
+                            </div>
+                          ) : (
+                            <div className="grid gap-2">
+                              {(item.options || []).map((option: any, optIdx: number) => (
+                                <div 
+                                  key={optIdx} 
+                                  className={cn(
+                                    "p-3 rounded-lg text-sm border flex items-center justify-between",
+                                    optIdx === item.correctAnswer 
+                                      ? "bg-success/10 border-success/30 text-success font-medium" 
+                                      : optIdx === item.selectedAnswer 
+                                        ? "bg-destructive/10 border-destructive/30 text-destructive font-medium" 
+                                        : "bg-background border-border"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <span className={cn(
+                                      "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
+                                      optIdx === item.correctAnswer ? "bg-success text-white" : "bg-muted"
+                                    )}>
+                                      {String.fromCharCode(65 + optIdx)}
+                                    </span>
+                                    {option}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {optIdx === item.correctAnswer && (
+                                      <span className="text-[9px] font-black uppercase text-success mr-2">Correct Answer</span>
+                                    )}
+                                    {optIdx === item.selectedAnswer && (
+                                      <span className={cn(
+                                        "text-[9px] font-black uppercase mr-2",
+                                        optIdx === item.correctAnswer ? "text-success" : "text-destructive"
+                                      )}>
+                                        {optIdx === item.correctAnswer ? "Your Choice" : "Candidate Selection"}
+                                      </span>
+                                    )}
+                                    {optIdx === item.correctAnswer && <CheckCircle className="h-4 w-4 shrink-0" />}
+                                    {optIdx === item.selectedAnswer && optIdx !== item.correctAnswer && <XCircleIcon className="h-4 w-4 shrink-0" />}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer === null && (
                             <div className="p-2 bg-amber-50 border border-amber-100 rounded text-[11px] text-amber-700 font-medium flex items-center gap-2">
                               <AlertCircle className="h-3.5 w-3.5" />
                               Candidate did not provide an answer for this question.
