@@ -265,8 +265,15 @@ export const gradeResponse = async (req, res, next) => {
             `, [candidateId]);
             const unansweredQuestions = parseInt(unansweredQuery.rows[0].count || 0);
 
-            await query(`UPDATE results SET overall_score = $1, unanswered_questions = $2 WHERE candidate_id = $3`, [overallScore, unansweredQuestions, candidateId]);
-            return res.json({ success: true, data: updatedResponse, overallScore, unansweredQuestions });
+            // Fetch threshold to re-evaluate PASS/FAIL
+            const assessmentQuery = await query(`SELECT thresholds FROM assessments WHERE id = (SELECT assessment_id FROM candidates WHERE id = $1)`, [candidateId]);
+            const thresholds = assessmentQuery.rows[0].thresholds || { overall: 50 };
+            const passed = overallScore >= (thresholds.overall || 50);
+
+            console.log(`GRADE RESPONSE DEBUG: Candidate ${candidateId}, Overall Score: ${overallScore}, Thresholds:`, thresholds, `Passed: ${passed}`);
+
+            await query(`UPDATE results SET overall_score = $1, unanswered_questions = $2, passed = $3 WHERE candidate_id = $4`, [overallScore, unansweredQuestions, passed, candidateId]);
+            return res.json({ success: true, data: updatedResponse, overallScore, unansweredQuestions, passed });
         }
 
         res.json({ success: true, data: updatedResponse });

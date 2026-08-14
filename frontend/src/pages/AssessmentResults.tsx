@@ -305,8 +305,8 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                 ) : (
                   <div className="space-y-6">
                     {detailedResponses.map((item, idx) => (
-                      <Card key={idx} className={cn(
-                        "shadow-none border-l-4",
+                      <Card key={idx} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }} className={cn(
+                        "shadow-none border-l-4 break-inside-avoid",
                         item.questionType === 'SUBJECTIVE'
                           ? "border-l-blue-500 bg-blue-50/10"
                           : item.selectedAnswer === item.correctAnswer 
@@ -365,7 +365,7 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                                 {item.textAnswer || <span className="text-muted-foreground italic">No text answer provided.</span>}
                               </div>
                               {item.manualScore !== null && item.manualScore !== undefined && !editingGrades[item.responseId] ? (
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-green-200 bg-green-50/30 rounded-lg gap-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-green-200 bg-green-50/30 rounded-lg gap-4" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                   <div className="flex items-start sm:items-center gap-3">
                                     <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
                                       <Trophy className="w-4 h-4 text-green-600" />
@@ -382,7 +382,7 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                                   </Button>
                                 </div>
                               ) : (
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 mt-2 border rounded-xl bg-slate-50/50 dark:bg-slate-900/30 flex-wrap">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 mt-2 border rounded-xl bg-slate-50/50 dark:bg-slate-900/30 flex-nowrap" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                   <div className="flex-1 w-full min-w-[200px]">
                                     <Input 
                                       className="w-full h-9 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-sm" 
@@ -392,7 +392,7 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                                     />
                                   </div>
                                   
-                                  <div className="flex items-center gap-4 shrink-0 flex-wrap">
+                                  <div className="flex items-center gap-4 shrink-0 flex-nowrap">
                                     <div className="flex items-center gap-2">
                                       <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Points:</span>
                                       <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 px-2.5 py-1 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
@@ -441,7 +441,7 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                                         setEditingGrades(prev => ({ ...prev, [item.responseId]: false }));
                                         
                                         if (typeof onGradeSaved === 'function') {
-                                          onGradeSaved(res.data?.overallScore || res.overallScore, res.data?.unansweredQuestions || res.unansweredQuestions, item.responseId, parsedScore, feedback);
+                                          onGradeSaved(res.data?.overallScore || res.overallScore, res.data?.unansweredQuestions || res.unansweredQuestions, item.responseId, parsedScore, feedback, res.passed ?? res.data?.passed);
                                         }
                                         
                                         setTimeout(() => { btn.innerText = originalText; btn.disabled = false; btn.classList.remove('bg-success'); }, 2000);
@@ -1123,7 +1123,7 @@ export default function AssessmentResults() {
               getDomainName={getDomainName} 
               onClose={() => setShowResultDialog(false)} 
               assessmentTitle={assessmentTitle}
-              onGradeSaved={(newScore: number, newUnanswered: number, responseId: string, parsedScore: number, feedback: string) => {
+              onGradeSaved={(newScore: number, newUnanswered: number, responseId: string, parsedScore: number, feedback: string, newPassed?: boolean) => {
                 setDetailedResponses(prev => prev.map(r => 
                   r.responseId === responseId 
                     ? { ...r, manualScore: parsedScore, graderFeedback: feedback } 
@@ -1132,7 +1132,8 @@ export default function AssessmentResults() {
                 setSelectedCandidate(prev => prev ? { 
                   ...prev, 
                   overallScore: newScore,
-                  unansweredQuestions: newUnanswered !== undefined ? newUnanswered : prev.unansweredQuestions 
+                  unansweredQuestions: newUnanswered !== undefined ? newUnanswered : prev.unansweredQuestions,
+                  passed: newPassed !== undefined ? newPassed : prev.passed
                 } : prev);
                 fetchResults();
               }}

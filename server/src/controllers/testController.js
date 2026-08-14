@@ -119,8 +119,8 @@ async function evaluateAndSaveResult(candidateId, assessmentId, attemptId, submi
     });
 
     const assessment = await Assessment.findAssessmentById(assessmentId);
-    const thresholds = assessment?.thresholds || { overall: 60 };
-    const passed = overallScore >= (thresholds.overall || 60);
+    const thresholds = assessment?.thresholds || { overall: 50 };
+    const passed = overallScore >= (thresholds.overall || 50);
 
     // 3. Persist result (includes granular stats) and update candidate
     const [result] = await Promise.all([
