@@ -852,9 +852,9 @@ export default function TakeTest() {
               <p className="text-sm text-muted-foreground">Question {currentIndex + 1} of {questions.length}</p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4" />
-                <span className={cn("font-mono font-semibold", timeRemaining < 300 && "text-destructive")}>{formatTime(timeRemaining)}</span>
+              <div className="flex items-center gap-2 text-sm bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-lg">
+                <Clock className="h-4 w-4 text-slate-500" />
+                <span className={cn("font-mono font-bold text-base tracking-wide", timeRemaining < 300 ? "text-destructive" : "text-slate-700 dark:text-slate-300")}>{formatTime(timeRemaining)}</span>
               </div>
               <Button onClick={() => setShowSubmitDialog(true)} variant="default"><Send className="mr-2 h-4 w-4" />Submit</Button>
             </div>
@@ -890,7 +890,7 @@ export default function TakeTest() {
                   <div className="space-y-2 mt-4 w-full max-w-full overflow-hidden">
                     <Textarea
                       key={currentQuestion.id}
-                      className="min-h-[200px] text-lg p-4 resize-y border-2 focus-visible:ring-primary break-all [overflow-wrap:anywhere] w-full max-w-full"
+                      className="min-h-[250px] text-[17px] p-6 resize-y border border-slate-200 dark:border-slate-800 shadow-sm focus-visible:ring-0 focus-visible:border-slate-400 dark:focus-visible:border-slate-600 transition-colors break-all [overflow-wrap:anywhere] whitespace-pre-wrap w-full max-w-full rounded-[8px] bg-white dark:bg-slate-950 leading-relaxed"
                       placeholder="Type your answer here... (Auto-saves when you click away)"
                       value={textInput}
                       onChange={(e) => setTextInput(e.target.value)}
@@ -985,7 +985,7 @@ export default function TakeTest() {
                   </div>
                 </CardContent>
               </Card>
-              <Button onClick={() => setShowSubmitDialog(true)} variant="default" size="lg" className="w-full h-12 text-lg font-bold shadow-lg"><Send className="mr-2 h-5 w-5" />Submit Test</Button>
+
             </div>
           </div>
         </div>

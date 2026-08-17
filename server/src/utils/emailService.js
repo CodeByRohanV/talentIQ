@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const getFrontendBaseUrl = () => {
-  const rawUrl = process.env.FRONTEND_URL || 'https://skillztest.scaloz.com';
+  const rawUrl = process.env.FRONTEND_URL || 'https://skillz.scaloz.com';
   if (rawUrl.includes(',')) {
     const urls = rawUrl.split(',').map(u => u.trim());
     const standardHttps = urls.find(u => u.startsWith('https://') && !u.includes('*'));

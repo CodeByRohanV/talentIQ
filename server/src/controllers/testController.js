@@ -120,7 +120,18 @@ async function evaluateAndSaveResult(candidateId, assessmentId, attemptId, submi
 
     const assessment = await Assessment.findAssessmentById(assessmentId);
     const thresholds = assessment?.thresholds || { overall: 50 };
-    const passed = overallScore >= (thresholds.overall || 50);
+    
+    let hasUngradedSubjective = false;
+    questions.forEach(q => {
+        if (q.question_type === 'SUBJECTIVE') {
+            const response = responseMap.get(q.id);
+            if (!response || response.manual_score === null || response.manual_score === undefined) {
+                hasUngradedSubjective = true;
+            }
+        }
+    });
+
+    const passed = hasUngradedSubjective ? null : (overallScore >= (thresholds.overall || 50));
 
     // 3. Persist result (includes granular stats) and update candidate
     const [result] = await Promise.all([

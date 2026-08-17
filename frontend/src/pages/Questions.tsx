@@ -426,9 +426,8 @@ export default function Questions() {
       
       let questionType = 'MULTIPLE_CHOICE';
       const isOptionsEmpty = optionsArray.every(opt => opt === '');
-      const isSubjectiveText = /explain|describe|what is|how do you|why|scenario|write|compare|analyze|discuss|outline|list|summarize/i.test(questionText);
       
-      if (isOptionsEmpty || isSubjectiveText) {
+      if (isOptionsEmpty) {
           questionType = 'SUBJECTIVE';
       }
 

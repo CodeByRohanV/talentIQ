@@ -1,87 +1,18 @@
 stages:
-  - build-backend
-  - build-frontend
   - deploy
-
-variables:
-  APP_PATH: "/home/ubuntu/xeskillz_test"
-  DEPLOY_BRANCH: "main"
-  FRONTEND_CONTAINER: "xeskillz-frontend"
-  WEB_ROOT: "/home/ubuntu/xeskillz_test/frontend/dist"
-  RUNNER_TAG: "docker"
-  COMPOSE_PROJECT_NAME: "xeskillz_test"
-  VITE_API_URL: "/api/"
-  VITE_TENANT_URL: "https://workspacetest.scaloz.com"
-
-before_script:
-  - cd "$APP_PATH"
-  - git config --global --add safe.directory "$APP_PATH"
-  - git fetch origin
-  - git reset --hard "$CI_COMMIT_SHA"
-
-build-backend:
-  stage: build-backend
-  tags:
-    - $RUNNER_TAG
-  script:
-    - |
-      if docker compose version >/dev/null 2>&1; then
-        docker compose build backend
-      else
-        docker-compose build backend
-      fi
-  only:
-    - main
-
-build-frontend:
-  stage: build-frontend
-  tags:
-    - $RUNNER_TAG
-  script:
-    - |
-      if docker compose version >/dev/null 2>&1; then
-        VITE_API_URL="$VITE_API_URL" VITE_TENANT_URL="$VITE_TENANT_URL" docker compose build frontend
-      else
-        VITE_API_URL="$VITE_API_URL" VITE_TENANT_URL="$VITE_TENANT_URL" docker-compose build frontend
-      fi
-  only:
-    - main
 
 deploy:
   stage: deploy
   tags:
-    - $RUNNER_TAG
-  script:
-    - |
-      echo "Running secure database migrations..."
-      if docker compose version >/dev/null 2>&1; then
-        docker compose run --rm backend npm run migrate
-      else
-        docker-compose run --rm backend npm run migrate
-      fi
-    - |
-      docker rm -f "$FRONTEND_CONTAINER" || true
-      if docker compose version >/dev/null 2>&1; then
-        echo "Using Docker Compose V2"
-        VITE_API_URL="$VITE_API_URL" VITE_TENANT_URL="$VITE_TENANT_URL" docker compose down --remove-orphans
-        VITE_API_URL="$VITE_API_URL" VITE_TENANT_URL="$VITE_TENANT_URL" docker compose up -d --force-recreate
-      else
-        echo "Using Docker Compose V1"
-        VITE_API_URL="$VITE_API_URL" VITE_TENANT_URL="$VITE_TENANT_URL" docker-compose down --remove-orphans
-        VITE_API_URL="$VITE_API_URL" VITE_TENANT_URL="$VITE_TENANT_URL" docker-compose up -d --force-recreate
-      fi
-
-    - |
-      FRONTEND_CID=$(docker ps -q -f "name=$FRONTEND_CONTAINER" | head -n 1)
-      if [ -n "$FRONTEND_CID" ]; then
-        echo "Syncing frontend build to $WEB_ROOT..."
-        mkdir -p ./temp_html
-        docker cp "$FRONTEND_CID":/usr/share/nginx/html/. ./temp_html/
-        docker run --rm -u 0:0 -v "$PWD/temp_html:/src" -v "$WEB_ROOT:/target" alpine sh -c "rm -rf /target/* && cp -a /src/. /target/ && chmod -R 755 /target"
-        rm -rf ./temp_html
-      fi
-
-    - docker image prune -f
-    - docker builder prune -f --filter "until=24h"
+    - docker
   only:
     - main
+  script:
+    - git config --global --add safe.directory /home/ubuntu/skillz
+    - rsync -av --delete $CI_PROJECT_DIR/ /home/ubuntu/skillz/
+    - cd /home/ubuntu/skillz
+    - docker-compose down
+    - docker system prune -af
+    - docker-compose up -d --build
+    - docker image prune -f
+    - docker ps

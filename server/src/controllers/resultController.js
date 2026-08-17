@@ -133,6 +133,8 @@ export const getDetailedResult = async (req, res, next) => {
         res.json({
             success: true,
             data: responses.map(r => ({
+                candidateId: r.candidate_id,
+                questionId: r.question_id,
                 responseId: r.response_id,
                 questionType: r.question_type || 'MULTIPLE_CHOICE',
                 questionText: r.question_text,
@@ -166,6 +168,8 @@ export const getDetailedResultsByAssessment = async (req, res, next) => {
                 grouped[r.candidate_id] = [];
             }
             grouped[r.candidate_id].push({
+                candidateId: r.candidate_id,
+                questionId: r.question_id,
                 responseId: r.response_id,
                 questionType: r.question_type || 'MULTIPLE_CHOICE',
                 questionText: r.question_text,
@@ -194,17 +198,31 @@ export const getDetailedResultsByAssessment = async (req, res, next) => {
 
 export const gradeResponse = async (req, res, next) => {
     try {
-        const { responseId } = req.params;
+        const { candidateId, questionId } = req.body;
+        const { responseId } = req.params; // legacy fallback
         const { manualScore, graderFeedback } = req.body;
+
+        // Determine candidateId and questionId if they are missing but responseId is present
+        let finalCandidateId = candidateId;
+        let finalQuestionId = questionId;
+
+        if (!finalCandidateId || !finalQuestionId) {
+            if (!responseId || responseId === 'null' || responseId === 'undefined') {
+                return res.status(400).json({ success: false, message: 'Candidate ID and Question ID are required for grading.' });
+            }
+            const respQuery = await query('SELECT candidate_id, question_id FROM responses WHERE id = $1', [responseId]);
+            if (respQuery.rows.length === 0) return res.status(404).json({ success: false, message: 'Response not found' });
+            finalCandidateId = respQuery.rows[0].candidate_id;
+            finalQuestionId = respQuery.rows[0].question_id;
+        }
 
         // Validation against max_score
         if (manualScore !== undefined) {
             const questionQuery = await query(`
-                SELECT q.max_score 
-                FROM responses r 
-                JOIN questions q ON r.question_id = q.id 
-                WHERE r.id = $1
-            `, [responseId]);
+                SELECT max_score 
+                FROM questions 
+                WHERE id = $1
+            `, [finalQuestionId]);
 
             if (questionQuery.rows.length > 0) {
                 const maxScore = questionQuery.rows[0].max_score || 1;
@@ -214,16 +232,10 @@ export const gradeResponse = async (req, res, next) => {
             }
         }
 
-        const updatedResponse = await Response.updateGrade(responseId, manualScore, graderFeedback);
-
-        if (!updatedResponse) {
-            return res.status(404).json({ success: false, message: 'Response not found' });
-        }
-
-        const candidateId = updatedResponse.candidate_id;
+        const updatedResponse = await Response.upsertGrade(finalCandidateId, finalQuestionId, manualScore, graderFeedback);
 
         // Fetch candidate result stats
-        const result = await Result.findResultByCandidateId(candidateId);
+        const result = await Result.findResultByCandidateId(finalCandidateId);
         if (result) {
             const pointsQuery = await query(`
                 SELECT 
@@ -237,7 +249,7 @@ export const gradeResponse = async (req, res, next) => {
                 FROM responses r
                 JOIN questions q ON r.question_id = q.id
                 WHERE r.candidate_id = $1
-            `, [candidateId]);
+            `, [finalCandidateId]);
             const totalEarned = parseFloat(pointsQuery.rows[0].total_earned || 0);
 
             const maxScoreQuery = await query(`
@@ -245,7 +257,7 @@ export const gradeResponse = async (req, res, next) => {
                 FROM assessment_questions aq
                 JOIN questions q ON aq.question_id = q.id
                 WHERE aq.assessment_id = (SELECT assessment_id FROM candidates WHERE id = $1)
-            `, [candidateId]);
+            `, [finalCandidateId]);
             const totalMaxScore = parseFloat(maxScoreQuery.rows[0].total_max_score || 1);
             
             const overallScore = Math.min(100, Math.round((totalMaxScore > 0 ? (totalEarned / totalMaxScore) : 0) * 100));
@@ -262,7 +274,7 @@ export const gradeResponse = async (req, res, next) => {
                     OR (q.question_type = 'SUBJECTIVE' AND (r.text_answer IS NULL OR TRIM(r.text_answer) = ''))
                     OR (q.question_type != 'SUBJECTIVE' AND r.selected_answer IS NULL)
                 )
-            `, [candidateId]);
+            `, [finalCandidateId]);
             const unansweredQuestions = parseInt(unansweredQuery.rows[0].count || 0);
 
             // Dynamically calculate correct answers count (including manually graded ones > 0)
@@ -274,17 +286,29 @@ export const gradeResponse = async (req, res, next) => {
                     (q.question_type = 'SUBJECTIVE' AND r.manual_score > 0) OR
                     (q.question_type != 'SUBJECTIVE' AND r.selected_answer = q.correct_answer)
                 )
-            `, [candidateId]);
+            `, [finalCandidateId]);
             const correctAnswers = parseInt(correctQuery.rows[0].count || 0);
 
+            // Check if there are any subjective questions still ungraded
+            const ungradedQuery = await query(`
+                SELECT COUNT(*) as count
+                FROM assessment_questions aq
+                JOIN questions q ON aq.question_id = q.id
+                LEFT JOIN responses r ON aq.question_id = r.question_id AND r.candidate_id = $1
+                WHERE aq.assessment_id = (SELECT assessment_id FROM candidates WHERE id = $1)
+                AND q.question_type = 'SUBJECTIVE'
+                AND (r.id IS NULL OR r.manual_score IS NULL)
+            `, [finalCandidateId]);
+            const ungradedCount = parseInt(ungradedQuery.rows[0].count || 0);
+
             // Fetch threshold to re-evaluate PASS/FAIL
-            const assessmentQuery = await query(`SELECT thresholds FROM assessments WHERE id = (SELECT assessment_id FROM candidates WHERE id = $1)`, [candidateId]);
+            const assessmentQuery = await query(`SELECT thresholds FROM assessments WHERE id = (SELECT assessment_id FROM candidates WHERE id = $1)`, [finalCandidateId]);
             const thresholds = assessmentQuery.rows[0].thresholds || { overall: 50 };
-            const passed = overallScore >= (thresholds.overall || 50);
+            const passed = ungradedCount > 0 ? null : (overallScore >= (thresholds.overall || 50));
 
-            console.log(`GRADE RESPONSE DEBUG: Candidate ${candidateId}, Overall Score: ${overallScore}, Thresholds:`, thresholds, `Passed: ${passed}, Correct: ${correctAnswers}`);
+            console.log(`GRADE RESPONSE DEBUG: Candidate ${finalCandidateId}, Overall Score: ${overallScore}, Thresholds:`, thresholds, `Passed: ${passed}, Correct: ${correctAnswers}`);
 
-            await query(`UPDATE results SET overall_score = $1, unanswered_questions = $2, passed = $3, correct_answers = $4 WHERE candidate_id = $5`, [overallScore, unansweredQuestions, passed, correctAnswers, candidateId]);
+            await query(`UPDATE results SET overall_score = $1, unanswered_questions = $2, passed = $3, correct_answers = $4 WHERE candidate_id = $5`, [overallScore, unansweredQuestions, passed, correctAnswers, finalCandidateId]);
             return res.json({ success: true, data: updatedResponse, overallScore, unansweredQuestions, passed, correctAnswers });
         }
 

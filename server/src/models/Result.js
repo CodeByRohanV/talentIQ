@@ -75,6 +75,8 @@ export const findResultsByAssessmentIds = async (assessmentIds) => {
 export const findDetailedResponsesByCandidateId = async (candidateId) => {
     const result = await query(
         `SELECT
+            c.id AS candidate_id,
+            q.id AS question_id,
             q.question_type,
             q.max_score,
             r.id AS response_id,
@@ -105,6 +107,7 @@ export const findAllDetailedResponsesByAssessmentId = async (assessmentId) => {
     const result = await query(
         `SELECT
             c.id AS candidate_id,
+            q.id AS question_id,
             q.question_type,
             q.max_score,
             r.id AS response_id,

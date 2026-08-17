@@ -104,385 +104,387 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
 
   return (
     <div className="space-y-8 py-4" >
-              {/* Header Info - Using Table for PDF stability */}
-              <div className="bg-muted/40 p-6 rounded-2xl border border-border/50">
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <tbody>
-                    <tr>
-                      <td style={{ width: '40%', verticalAlign: 'top', paddingBottom: '4px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Email Address</p>
-                        <p style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>{candidate.email}</p>
-                      </td>
-                      <td style={{ width: '25%', verticalAlign: 'top', textAlign: 'center', paddingBottom: '4px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Method</p>
-                        <div style={{ display: 'inline-block', border: '1px solid #e2e8f0', padding: '2px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: '700', color: '#475569', backgroundColor: 'white', textTransform: 'capitalize' }}>
-                          {candidate.submissionMode || 'Manual'} Submission
-                        </div>
-                      </td>
-                      <td style={{ width: '25%', verticalAlign: 'top', textAlign: 'center', paddingBottom: '4px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>IP Address</p>
-                        <p style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>{candidate.ipAddress || 'N/A'}</p>
-                      </td>
-                      <td style={{ width: '20%', verticalAlign: 'top', textAlign: 'right', paddingBottom: '4px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Status</p>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                          <div style={{ 
-                            backgroundColor: candidate.passed ? '#10b981' : '#ef4444',
-                            color: 'white',
-                            padding: '4px 16px',
-                            borderRadius: '9999px',
-                            fontSize: '10px',
-                            fontWeight: '900',
-                            textTransform: 'uppercase',
-                            minWidth: '80px',
-                            textAlign: 'center',
-                            display: 'inline-block',
-                            lineHeight: '1.2'
-                          }}>
-                            {candidate.passed ? 'PASSED' : 'FAILED'}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style={{ paddingTop: '16px', verticalAlign: 'top' }}>
-                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Test Date</p>
-                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
-                          {candidate.startedAt ? format(new Date(candidate.startedAt), 'MMM dd, yyyy') : 'N/A'}
-                        </p>
-                      </td>
-                      <td style={{ paddingTop: '16px', verticalAlign: 'top', textAlign: 'center' }}>
-                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Start Time</p>
-                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
-                          {candidate.startedAt ? format(new Date(candidate.startedAt), 'hh:mm:ss a') : 'N/A'}
-                        </p>
-                      </td>
-                      <td style={{ paddingTop: '16px', verticalAlign: 'top', textAlign: 'right' }}>
-                        <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>End Time</p>
-                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
-                          {candidate.completedAt ? format(new Date(candidate.completedAt), 'hh:mm:ss a') : 'N/A'}
-                        </p>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Photo ID Section */}
-              {candidate.photoIdUrl && (
-                <div className="flex flex-col items-center p-4 bg-muted/20 border rounded-xl">
-                  <p className="text-[10px] font-black uppercase text-muted-foreground mb-3">Identity Verification Photo</p>
-                  <img 
-                    src={candidate.photoIdUrl.startsWith('http') 
-                      ? `${resolveApiUrl(import.meta.env.VITE_API_URL).replace(/\/+$/, '')}/proctoring/media?url=${encodeURIComponent(candidate.photoIdUrl)}` 
-                      : `${resolveApiUrl(import.meta.env.VITE_API_URL).replace(/\/api$/, '')}${candidate.photoIdUrl}`}
-                    alt="Candidate ID" 
-                    crossOrigin="anonymous"
-                    className="rounded-lg shadow-sm border max-w-[240px] max-h-[240px] object-cover" 
-                  />
+      {/* Header Info - Using Table for PDF stability */}
+      <div className="bg-muted/40 p-6 rounded-2xl border border-border/50">
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <tbody>
+            <tr>
+              <td style={{ width: '40%', verticalAlign: 'top', paddingBottom: '4px' }}>
+                <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Email Address</p>
+                <p style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>{candidate.email}</p>
+              </td>
+              <td style={{ width: '25%', verticalAlign: 'top', textAlign: 'center', paddingBottom: '4px' }}>
+                <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Method</p>
+                <div style={{ display: 'inline-block', border: '1px solid #e2e8f0', padding: '2px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: '700', color: '#475569', backgroundColor: 'white', textTransform: 'capitalize' }}>
+                  {candidate.submissionMode || 'Manual'} Submission
                 </div>
-              )}
-
-              {/* Performance Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Card className="bg-primary/5 border-primary/20 shadow-none">
-                  <CardContent className="pt-6 text-center p-4">
-                    <p className="text-[10px] font-black uppercase text-primary/60 mb-1">Score</p>
-                    <p className="text-3xl font-black text-primary">{candidate.overallScore !== null ? `${candidate.overallScore}%` : 'N/A'}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-success/5 border-success/20 shadow-none">
-                  <CardContent className="pt-6 text-center p-4">
-                    <p className="text-[10px] font-black uppercase text-success/60 mb-1">Correct</p>
-                    <p className="text-3xl font-black text-success">{candidate.correctAnswers !== null ? candidate.correctAnswers : '—'}</p>
-                  </CardContent>
-                </Card>
-                <Card className={cn(
-                  "shadow-none",
-                  (candidate.unansweredQuestions || 0) > 0 ? "bg-amber-50 border-amber-200" : "bg-muted border-border/50"
-                )}>
-                  <CardContent className="pt-6 text-center p-4">
-                    <p className={cn(
-                      "text-[10px] font-black uppercase mb-1",
-                      (candidate.unansweredQuestions || 0) > 0 ? "text-amber-600" : "text-muted-foreground"
-                    )}>Unanswered</p>
-                    <p className={cn(
-                      "text-3xl font-black",
-                      (candidate.unansweredQuestions || 0) > 0 ? "text-amber-600" : ""
-                    )}>{candidate.unansweredQuestions || 0}</p>
-                  </CardContent>
-                </Card>
-                <Card className={cn(
-                  "shadow-none",
-                  (candidate.tabSwitchCount || 0) > 0 ? "bg-destructive/5 border-destructive/20" : "bg-muted border-border/50"
-                )}>
-                  <CardContent className="pt-6 text-center p-4">
-                    <div className="flex flex-col items-center">
-                      <p className={cn(
-                        "text-[10px] font-black uppercase mb-1",
-                        (candidate.tabSwitchCount || 0) > 0 ? "text-destructive/60" : "text-muted-foreground"
-                      )}>Tab Switches</p>
-                      <div className="flex items-center gap-1">
-                        {(candidate.tabSwitchCount || 0) > 0 && <AlertTriangle className="h-4 w-4 text-destructive" />}
-                        <p className={cn(
-                          "text-3xl font-black",
-                          (candidate.tabSwitchCount || 0) > 0 ? "text-destructive" : ""
-                        )}>{candidate.tabSwitchCount || 0}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Security Advisory */}
-              {(candidate.tabSwitchCount || 0) > 0 && (
-                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-3">
-                  <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-bold text-destructive">Security Alert: Tab Switching Detected</h4>
-                    <p className="text-xs text-destructive/80 mt-1 leading-relaxed">
-                      This candidate attempted to switch browser tabs or windows **{candidate.tabSwitchCount} times** during the assessment.
-                    </p>
+              </td>
+              <td style={{ width: '25%', verticalAlign: 'top', textAlign: 'center', paddingBottom: '4px' }}>
+                <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>IP Address</p>
+                <p style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>{candidate.ipAddress || 'N/A'}</p>
+              </td>
+              <td style={{ width: '20%', verticalAlign: 'top', textAlign: 'right', paddingBottom: '4px' }}>
+                <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Status</p>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{
+                    backgroundColor: candidate.passed === null ? '#f59e0b' : (candidate.passed ? '#10b981' : '#ef4444'),
+                    color: 'white',
+                    padding: '4px 16px',
+                    borderRadius: '9999px',
+                    fontSize: '10px',
+                    fontWeight: '900',
+                    textTransform: 'uppercase',
+                    minWidth: '80px',
+                    textAlign: 'center',
+                    display: 'inline-block',
+                    lineHeight: '1.2'
+                  }}>
+                    {candidate.passed === null ? 'NEEDS GRADING' : (candidate.passed ? 'PASSED' : 'FAILED')}
                   </div>
                 </div>
-              )}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ paddingTop: '16px', verticalAlign: 'top' }}>
+                <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Test Date</p>
+                <p style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
+                  {candidate.startedAt ? format(new Date(candidate.startedAt), 'MMM dd, yyyy') : 'N/A'}
+                </p>
+              </td>
+              <td style={{ paddingTop: '16px', verticalAlign: 'top', textAlign: 'center' }}>
+                <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>Start Time</p>
+                <p style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
+                  {candidate.startedAt ? format(new Date(candidate.startedAt), 'hh:mm:ss a') : 'N/A'}
+                </p>
+              </td>
+              <td style={{ paddingTop: '16px', verticalAlign: 'top', textAlign: 'right' }}>
+                <p style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '4px' }}>End Time</p>
+                <p style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a' }}>
+                  {candidate.completedAt ? format(new Date(candidate.completedAt), 'hh:mm:ss a') : 'N/A'}
+                </p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
+      {/* Photo ID Section */}
+      {candidate.photoIdUrl && (
+        <div className="flex flex-col items-center p-4 bg-muted/20 border rounded-xl">
+          <p className="text-[10px] font-black uppercase text-muted-foreground mb-3">Identity Verification Photo</p>
+          <img
+            src={candidate.photoIdUrl.startsWith('http')
+              ? `${resolveApiUrl(import.meta.env.VITE_API_URL).replace(/\/+$/, '')}/proctoring/media?url=${encodeURIComponent(candidate.photoIdUrl)}`
+              : `${resolveApiUrl(import.meta.env.VITE_API_URL).replace(/\/api\/?$/, '')}${candidate.photoIdUrl}`}
+            alt="Candidate ID"
+            crossOrigin="anonymous"
+            className="rounded-lg shadow-sm border max-w-[240px] max-h-[240px] object-cover"
+          />
+        </div>
+      )}
 
-              {/* Question Breakdown */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
-                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                    <ClipboardList className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  Question-by-Question Breakdown
-                </h3>
-
-                {loadingDetailed ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                    <Loader2 className="h-8 w-8 animate-spin mb-2" />
-                    <p className="text-sm">Loading detailed responses...</p>
-                  </div>
-                ) : detailedResponses.length === 0 ? (
-                  <div className="text-center py-10 bg-muted/20 rounded-xl border border-dashed">
-                    <p className="text-sm text-muted-foreground">No detailed responses available for this candidate.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {detailedResponses.map((item, idx) => (
-                      <Card key={idx} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }} className={cn(
-                        "shadow-none border-l-4 break-inside-avoid",
-                        item.questionType === 'SUBJECTIVE'
-                          ? "border-l-blue-500 bg-blue-50/10"
-                          : item.selectedAnswer === item.correctAnswer 
-                            ? "border-l-success bg-success/5" 
-                            : item.selectedAnswer === null 
-                              ? "border-l-amber-500 bg-amber-50/30" 
-                              : "border-l-destructive bg-destructive/5"
-                      )}>
-                        <CardHeader className="pb-2">
-                          <div className="flex justify-between items-start gap-4">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 px-2 py-0.5 uppercase border-transparent rounded-md">
-                                Q{idx + 1}
-                              </Badge>
-                              <Badge variant="secondary" className="text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 px-2 py-0.5 uppercase border-transparent rounded-md">
-                                {getDomainName(item.domain)}
-                              </Badge>
-                              {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer === null && (
-                                <Badge variant="outline" className="text-[9px] font-black text-amber-700 bg-amber-100 border-amber-300 px-2 py-0.5 uppercase tracking-wide rounded-md">
-                                  NOT ANSWERED
-                                </Badge>
-                              )}
-                              {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer === item.correctAnswer && (
-                                <Badge className="text-[9px] font-black text-white bg-emerald-500 hover:bg-emerald-600 px-2 py-0.5 border-transparent uppercase tracking-wide rounded-md">
-                                  CORRECT
-                                </Badge>
-                              )}
-                              {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer !== null && item.selectedAnswer !== item.correctAnswer && (
-                                <Badge className="text-[9px] font-black text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 border-transparent uppercase tracking-wide rounded-md">
-                                  INCORRECT
-                                </Badge>
-                              )}
-                              {item.questionType === 'SUBJECTIVE' && item.manualScore !== null && (
-                                <Badge className="text-[9px] font-black text-white bg-blue-500 hover:bg-blue-600 px-2 py-0.5 border-transparent uppercase tracking-wide rounded-md">
-                                  GRADED: {item.manualScore}
-                                </Badge>
-                              )}
-                              {item.questionType === 'SUBJECTIVE' && item.manualScore === null && (
-                                <Badge variant="outline" className="text-[9px] font-black text-amber-700 bg-amber-100 border-amber-300 px-2 py-0.5 uppercase tracking-wide rounded-md">
-                                  NEEDS GRADING
-                                </Badge>
-                              )}
-                            </div>
-                            <Badge variant="outline" className="text-[10px] capitalize">
-                              {item.difficulty}
-                            </Badge>
-                          </div>
-                          <CardTitle className="text-base font-semibold leading-relaxed pt-2">
-                            {item.questionText}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4 pt-2">
-                          {(item.questionType === 'SUBJECTIVE' || item.question_type === 'SUBJECTIVE') ? (
-                            <div className="space-y-4 w-full max-w-full overflow-hidden">
-                              <div className="p-4 bg-muted/30 border rounded-lg whitespace-pre-wrap break-all [overflow-wrap:anywhere] w-full max-w-full overflow-hidden">
-                                {item.textAnswer || <span className="text-muted-foreground italic">No text answer provided.</span>}
-                              </div>
-                              {item.manualScore !== null && item.manualScore !== undefined && !editingGrades[item.responseId] ? (
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-green-200 bg-green-50/30 rounded-lg gap-4" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                  <div className="flex items-start sm:items-center gap-3">
-                                    <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                                      <Trophy className="w-4 h-4 text-green-600" />
-                                    </div>
-                                    <div>
-                                      <h4 className="text-sm font-bold text-green-900">Graded: {item.manualScore} / {item.max_score || 1}</h4>
-                                      {item.graderFeedback && <p className="text-xs text-green-700/80 mt-0.5 whitespace-pre-wrap break-words min-w-0">"{item.graderFeedback}"</p>}
-                                    </div>
-                                  </div>
-                                  <Button size="sm" variant="outline" className="h-8 text-xs font-semibold bg-white shrink-0" onClick={() => {
-                                    setEditingGrades(prev => ({ ...prev, [item.responseId]: true }));
-                                  }}>
-                                    Edit Grade
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 mt-2 border rounded-xl bg-slate-50/50 dark:bg-slate-900/30 flex-nowrap" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                  <div className="flex-1 w-full min-w-[200px]">
-                                    <textarea 
-                                      className="flex min-h-[60px] w-full rounded-md border border-input bg-white dark:bg-slate-950 px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 break-all [overflow-wrap:anywhere] whitespace-pre-wrap resize-y w-full max-w-full" 
-                                      placeholder="Add optional feedback..." 
-                                      defaultValue={item.graderFeedback || ''}
-                                      id={`feedback-${item.responseId}`}
-                                    />
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-4 shrink-0 flex-nowrap">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Points:</span>
-                                      <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 px-2.5 py-1 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
-                                        <Input 
-                                          type="number" 
-                                          className="w-14 h-7 text-center font-bold p-0 border-none shadow-none focus-visible:ring-0 bg-transparent text-base [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                          min="0" 
-                                          max={item.max_score || 1} 
-                                          step="0.5" 
-                                          defaultValue={item.manualScore ?? ''} 
-                                          id={`score-${item.responseId}`}
-                                          onChange={(e) => {
-                                            const val = parseFloat(e.target.value);
-                                            const max = item.max_score || 1;
-                                            if (!isNaN(val)) {
-                                              if (val > max) e.target.value = max.toString();
-                                              if (val < 0) e.target.value = "0";
-                                            }
-                                          }}
-                                        />
-                                        <span className="text-slate-400 font-medium select-none text-sm pr-1">/ {item.max_score || 1}</span>
-                                      </div>
-                                    </div>
-                                    <Button size="sm" className="h-9 px-5 shadow-sm shrink-0 font-semibold" onClick={async (e) => {
-                                      const btn = e.currentTarget;
-                                      const feedback = (document.getElementById(`feedback-${item.responseId}`) as HTMLInputElement)?.value;
-                                      const score = (document.getElementById(`score-${item.responseId}`) as HTMLInputElement)?.value;
-                                      if (score === '') return;
-
-                                      const parsedScore = parseFloat(score);
-                                      const maxScore = item.max_score || 1;
-                                      if (parsedScore < 0 || parsedScore > maxScore) {
-                                        toast({ title: 'Invalid Score', description: `Score cannot exceed the maximum marks of ${maxScore}.`, variant: 'destructive' });
-                                        return;
-                                      }
-                                      
-                                      const originalText = btn.innerText;
-                                      btn.innerText = 'Saving...';
-                                      btn.disabled = true;
-                                      try {
-                                        const res = await resultsAPI.gradeResponse(item.responseId, parsedScore, feedback);
-                                        btn.innerText = 'Saved!';
-                                        btn.classList.add('bg-success');
-                                        
-                                        // End edit mode locally so it flips to static view
-                                        setEditingGrades(prev => ({ ...prev, [item.responseId]: false }));
-                                        
-                                        if (typeof onGradeSaved === 'function') {
-                                          onGradeSaved(res.data?.overallScore || res.overallScore, res.data?.unansweredQuestions || res.unansweredQuestions, item.responseId, parsedScore, feedback, res.passed ?? res.data?.passed, res.correctAnswers ?? res.data?.correctAnswers);
-                                        }
-                                        
-                                        setTimeout(() => { btn.innerText = originalText; btn.disabled = false; btn.classList.remove('bg-success'); }, 2000);
-                                      } catch (err: any) {
-                                        alert('Error saving grade: ' + err.message);
-                                        btn.innerText = originalText;
-                                        btn.disabled = false;
-                                      }
-                                    }}>Save Grade</Button>
-                                    {item.manualScore !== null && item.manualScore !== undefined && (
-                                      <Button size="sm" variant="ghost" className="h-9 shrink-0 text-muted-foreground" onClick={() => {
-                                        setEditingGrades(prev => ({ ...prev, [item.responseId]: false }));
-                                      }}>Cancel</Button>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="grid gap-2">
-                              {(item.options || []).map((option: any, optIdx: number) => (
-                                <div 
-                                  key={optIdx} 
-                                  className={cn(
-                                    "p-3 rounded-lg text-sm border flex items-center justify-between",
-                                    optIdx === item.correctAnswer 
-                                      ? "bg-success/10 border-success/30 text-success font-medium" 
-                                      : optIdx === item.selectedAnswer 
-                                        ? "bg-destructive/10 border-destructive/30 text-destructive font-medium" 
-                                        : "bg-background border-border"
-                                  )}
-                                >
-                                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                                    <span className={cn(
-                                      "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5",
-                                      optIdx === item.correctAnswer ? "bg-success text-white" : "bg-muted"
-                                    )}>
-                                      {String.fromCharCode(65 + optIdx)}
-                                    </span>
-                                    <span className="break-words whitespace-pre-wrap min-w-0 flex-1">{option}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {optIdx === item.correctAnswer && (
-                                      <span className="text-[9px] font-black uppercase text-success mr-2">Correct Answer</span>
-                                    )}
-                                    {optIdx === item.selectedAnswer && (
-                                      <span className={cn(
-                                        "text-[9px] font-black uppercase mr-2",
-                                        optIdx === item.correctAnswer ? "text-success" : "text-destructive"
-                                      )}>
-                                        {optIdx === item.correctAnswer ? "Your Choice" : "Candidate Selection"}
-                                      </span>
-                                    )}
-                                    {optIdx === item.correctAnswer && <CheckCircle className="h-4 w-4 shrink-0" />}
-                                    {optIdx === item.selectedAnswer && optIdx !== item.correctAnswer && <XCircleIcon className="h-4 w-4 shrink-0" />}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer === null && (
-                            <div className="p-2 bg-amber-50 border border-amber-100 rounded text-[11px] text-amber-700 font-medium flex items-center gap-2">
-                              <AlertCircle className="h-3.5 w-3.5" />
-                              Candidate did not provide an answer for this question.
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end pt-4">
-                <Button onClick={() => onClose && onClose()} className="px-8">Close Report</Button>
+      {/* Performance Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <Card className="bg-primary/5 border-primary/20 shadow-none">
+          <CardContent className="pt-6 text-center p-4">
+            <p className="text-[10px] font-black uppercase text-primary/60 mb-1">Score</p>
+            <p className="text-3xl font-black text-primary">{candidate.overallScore !== null ? `${candidate.overallScore}%` : 'N/A'}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-success/5 border-success/20 shadow-none">
+          <CardContent className="pt-6 text-center p-4">
+            <p className="text-[10px] font-black uppercase text-success/60 mb-1">Correct</p>
+            <p className="text-3xl font-black text-success">{candidate.correctAnswers !== null ? candidate.correctAnswers : '—'}</p>
+          </CardContent>
+        </Card>
+        <Card className={cn(
+          "shadow-none",
+          (candidate.unansweredQuestions || 0) > 0 ? "bg-amber-50 border-amber-200" : "bg-muted border-border/50"
+        )}>
+          <CardContent className="pt-6 text-center p-4">
+            <p className={cn(
+              "text-[10px] font-black uppercase mb-1",
+              (candidate.unansweredQuestions || 0) > 0 ? "text-amber-600" : "text-muted-foreground"
+            )}>Unanswered</p>
+            <p className={cn(
+              "text-3xl font-black",
+              (candidate.unansweredQuestions || 0) > 0 ? "text-amber-600" : ""
+            )}>{candidate.unansweredQuestions || 0}</p>
+          </CardContent>
+        </Card>
+        <Card className={cn(
+          "shadow-none",
+          (candidate.tabSwitchCount || 0) > 0 ? "bg-destructive/5 border-destructive/20" : "bg-muted border-border/50"
+        )}>
+          <CardContent className="pt-6 text-center p-4">
+            <div className="flex flex-col items-center">
+              <p className={cn(
+                "text-[10px] font-black uppercase mb-1",
+                (candidate.tabSwitchCount || 0) > 0 ? "text-destructive/60" : "text-muted-foreground"
+              )}>Tab Switches</p>
+              <div className="flex items-center gap-1">
+                {(candidate.tabSwitchCount || 0) > 0 && <AlertTriangle className="h-4 w-4 text-destructive" />}
+                <p className={cn(
+                  "text-3xl font-black",
+                  (candidate.tabSwitchCount || 0) > 0 ? "text-destructive" : ""
+                )}>{candidate.tabSwitchCount || 0}</p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Security Advisory */}
+      {(candidate.tabSwitchCount || 0) > 0 && (
+        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-3">
+          <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-bold text-destructive">Security Alert: Tab Switching Detected</h4>
+            <p className="text-xs text-destructive/80 mt-1 leading-relaxed">
+              This candidate attempted to switch browser tabs or windows **{candidate.tabSwitchCount} times** during the assessment.
+            </p>
+          </div>
+        </div>
+      )}
+
+
+
+      {/* Question Breakdown */}
+      <div className="space-y-4 pt-4 border-t">
+        <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
+          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+            <ClipboardList className="h-3.5 w-3.5 text-primary" />
+          </div>
+          Question-by-Question Breakdown
+        </h3>
+
+        {loadingDetailed ? (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin mb-2" />
+            <p className="text-sm">Loading detailed responses...</p>
+          </div>
+        ) : detailedResponses.length === 0 ? (
+          <div className="text-center py-10 bg-muted/20 rounded-xl border border-dashed">
+            <p className="text-sm text-muted-foreground">No detailed responses available for this candidate.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {detailedResponses.map((item, idx) => (
+              <Card key={`${candidate?.id || 'candidate'}-${item.questionId || idx}`} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }} className={cn(
+                "shadow-none border-l-4 break-inside-avoid",
+                item.questionType === 'SUBJECTIVE'
+                  ? "border-l-blue-500 bg-blue-50/10"
+                  : item.selectedAnswer === item.correctAnswer
+                    ? "border-l-success bg-success/5"
+                    : item.selectedAnswer === null
+                      ? "border-l-amber-500 bg-amber-50/30"
+                      : "border-l-destructive bg-destructive/5"
+              )}>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 px-2 py-0.5 uppercase border-transparent rounded-md">
+                        Q{idx + 1}
+                      </Badge>
+                      <Badge variant="secondary" className="text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 px-2 py-0.5 uppercase border-transparent rounded-md">
+                        {getDomainName(item.domain)}
+                      </Badge>
+                      {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer === null && (
+                        <Badge variant="outline" className="text-[9px] font-black text-amber-700 bg-amber-100 border-amber-300 px-2 py-0.5 uppercase tracking-wide rounded-md">
+                          NOT ANSWERED
+                        </Badge>
+                      )}
+                      {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer === item.correctAnswer && (
+                        <Badge className="text-[9px] font-black text-white bg-emerald-500 hover:bg-emerald-600 px-2 py-0.5 border-transparent uppercase tracking-wide rounded-md">
+                          CORRECT
+                        </Badge>
+                      )}
+                      {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer !== null && item.selectedAnswer !== item.correctAnswer && (
+                        <Badge className="text-[9px] font-black text-white bg-red-500 hover:bg-red-600 px-2 py-0.5 border-transparent uppercase tracking-wide rounded-md">
+                          INCORRECT
+                        </Badge>
+                      )}
+                      {item.questionType === 'SUBJECTIVE' && item.manualScore !== null && (
+                        <Badge className="text-[9px] font-black text-white bg-blue-500 hover:bg-blue-600 px-2 py-0.5 border-transparent uppercase tracking-wide rounded-md">
+                          GRADED: {item.manualScore}
+                        </Badge>
+                      )}
+                      {item.questionType === 'SUBJECTIVE' && item.manualScore === null && (
+                        <Badge variant="outline" className="text-[9px] font-black text-amber-700 bg-amber-100 border-amber-300 px-2 py-0.5 uppercase tracking-wide rounded-md">
+                          NEEDS GRADING
+                        </Badge>
+                      )}
+                    </div>
+                    <Badge variant="outline" className="text-[10px] capitalize">
+                      {item.difficulty}
+                    </Badge>
+                  </div>
+                  <CardTitle className="text-base font-semibold leading-relaxed pt-2">
+                    {item.questionText}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-2">
+                  {(item.questionType === 'SUBJECTIVE' || item.question_type === 'SUBJECTIVE') ? (
+                    <div className="space-y-4 w-full max-w-full overflow-hidden">
+                      <div className="p-4 bg-muted/30 border rounded-lg whitespace-pre-wrap break-all [overflow-wrap:anywhere] min-w-0">
+                        {item.textAnswer || <span className="text-muted-foreground italic">No text answer provided.</span>}
+                      </div>
+                      {item.manualScore !== null && item.manualScore !== undefined && !editingGrades[item.responseId] ? (
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border border-green-200 bg-green-50/30 rounded-lg gap-4" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                          <div className="flex items-start sm:items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                              <Trophy className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div className="w-full max-w-full overflow-hidden">
+                              <h4 className="text-sm font-bold text-green-900">Graded: {item.manualScore} / {item.max_score || 1}</h4>
+                              {item.graderFeedback && <p className="text-xs text-green-700/80 mt-0.5 whitespace-pre-wrap break-all [overflow-wrap:anywhere] min-w-0">"{item.graderFeedback}"</p>}
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" className="h-8 text-xs font-semibold bg-white shrink-0" onClick={() => {
+                            setEditingGrades(prev => ({ ...prev, [item.responseId]: true }));
+                          }}>
+                            Edit Grade
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-3 mt-2 border rounded-xl bg-slate-50/50 dark:bg-slate-900/30 flex-nowrap" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                          <div className="flex-1 w-full min-w-[200px]">
+                            <Input
+                              className="w-full h-9 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-sm"
+                              placeholder="Add optional feedback..."
+                              defaultValue={item.graderFeedback || ''}
+                              id={`feedback-${item.responseId}`}
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-4 shrink-0 flex-nowrap">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Points:</span>
+                              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 px-2.5 py-1 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
+                                <Input
+                                  type="number"
+                                  className="w-14 h-7 text-center font-bold p-0 border-none shadow-none focus-visible:ring-0 bg-transparent text-base [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  min="0"
+                                  max={item.max_score || 1}
+                                  step="0.5"
+                                  defaultValue={item.manualScore ?? (!item.textAnswer?.trim() ? 0 : '')}
+                                  id={`score-${item.responseId}`}
+                                  onWheel={(e) => (e.target as HTMLElement).blur()}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    const max = item.max_score || 1;
+                                    if (!isNaN(val)) {
+                                      if (val > max) e.target.value = max.toString();
+                                      if (val < 0) e.target.value = "0";
+                                    }
+                                  }}
+                                />
+                                <span className="text-slate-400 font-medium select-none text-sm pr-1">/ {item.max_score || 1}</span>
+                              </div>
+                            </div>
+                            <Button size="sm" className="h-9 px-5 shadow-sm shrink-0 font-semibold" onClick={async (e) => {
+                              const btn = e.currentTarget;
+                              const feedback = (document.getElementById(`feedback-${item.responseId}`) as HTMLInputElement)?.value;
+                              const score = (document.getElementById(`score-${item.responseId}`) as HTMLInputElement)?.value;
+                              if (score === '') return;
+
+                              const parsedScore = parseFloat(score);
+                              const maxScore = item.max_score || 1;
+                              if (parsedScore < 0 || parsedScore > maxScore) {
+                                toast({ title: 'Invalid Score', description: `Score cannot exceed the maximum marks of ${maxScore}.`, variant: 'destructive' });
+                                return;
+                              }
+
+                              const originalText = btn.innerText;
+                              btn.innerText = 'Saving...';
+                              btn.disabled = true;
+                              try {
+                                const res = await resultsAPI.gradeResponse(item.responseId || null, parsedScore, feedback, candidate.id, item.questionId);
+                                btn.innerText = 'Saved!';
+                                btn.classList.add('bg-success');
+
+                                // End edit mode locally so it flips to static view
+                                setEditingGrades(prev => ({ ...prev, [res.data?.id || item.responseId]: false }));
+
+                                if (typeof onGradeSaved === 'function') {
+                                  onGradeSaved(res.data?.overallScore || res.overallScore, res.data?.unansweredQuestions || res.unansweredQuestions, res.data?.id || item.responseId, parsedScore, feedback, res.passed ?? res.data?.passed, item.questionId);
+                                }
+
+                                setTimeout(() => { btn.innerText = originalText; btn.disabled = false; btn.classList.remove('bg-success'); }, 2000);
+                              } catch (err: any) {
+                                alert('Error saving grade: ' + err.message);
+                                btn.innerText = originalText;
+                                btn.disabled = false;
+                              }
+                            }}>Save Grade</Button>
+                            {item.manualScore !== null && item.manualScore !== undefined && (
+                              <Button size="sm" variant="ghost" className="h-9 shrink-0 text-muted-foreground" onClick={() => {
+                                setEditingGrades(prev => ({ ...prev, [item.responseId]: false }));
+                              }}>Cancel</Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid gap-2">
+                      {(item.options || []).map((option: any, optIdx: number) => (
+                        <div
+                          key={optIdx}
+                          className={cn(
+                            "p-3 rounded-lg text-sm border flex items-center justify-between",
+                            optIdx === item.correctAnswer
+                              ? "bg-success/10 border-success/30 text-success font-medium"
+                              : optIdx === item.selectedAnswer
+                                ? "bg-destructive/10 border-destructive/30 text-destructive font-medium"
+                                : "bg-background border-border"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className={cn(
+                              "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
+                              optIdx === item.correctAnswer ? "bg-success text-white" : "bg-muted"
+                            )}>
+                              {String.fromCharCode(65 + optIdx)}
+                            </span>
+                            {option}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {optIdx === item.correctAnswer && (
+                              <span className="text-[9px] font-black uppercase text-success mr-2">Correct Answer</span>
+                            )}
+                            {optIdx === item.selectedAnswer && (
+                              <span className={cn(
+                                "text-[9px] font-black uppercase mr-2",
+                                optIdx === item.correctAnswer ? "text-success" : "text-destructive"
+                              )}>
+                                {optIdx === item.correctAnswer ? "Your Choice" : "Candidate Selection"}
+                              </span>
+                            )}
+                            {optIdx === item.correctAnswer && <CheckCircle className="h-4 w-4 shrink-0" />}
+                            {optIdx === item.selectedAnswer && optIdx !== item.correctAnswer && <XCircleIcon className="h-4 w-4 shrink-0" />}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {item.questionType !== 'SUBJECTIVE' && item.selectedAnswer === null && (
+                    <div className="p-2 bg-amber-50 border border-amber-100 rounded text-[11px] text-amber-700 font-medium flex items-center gap-2">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      Candidate did not provide an answer for this question.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-end pt-4">
+        <Button onClick={() => onClose && onClose()} className="px-8">Close Report</Button>
+      </div>
+    </div>
 
   );
 };
@@ -508,7 +510,7 @@ export default function AssessmentResults() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'in_progress' | 'pending' | 'timed_out' | 'passed' | 'failed'>('all');
   const [sortConfig, setSortConfig] = useState<{ key: keyof CandidateResult; direction: 'asc' | 'desc' }>({ key: 'name', direction: 'asc' });
   const reportRef = useRef<HTMLDivElement>(null);
-  
+
   const [bulkDownloading, setBulkDownloading] = useState(false);
   const [bulkDetailedResponses, setBulkDetailedResponses] = useState<Record<string, DetailedResponse[]>>({});
   const bulkReportRef = useRef<HTMLDivElement>(null);
@@ -537,17 +539,17 @@ export default function AssessmentResults() {
   const filteredAndSortedCandidates = candidates
     .filter(c => {
       // Search Term
-      const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            c.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
+      const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.email.toLowerCase().includes(searchTerm.toLowerCase());
+
       // Status Filter
       if (!matchesSearch) return false;
       if (statusFilter === 'all') return true;
 
-      const isTimedOut = c.status === 'in_progress' && 
-                        c.startedAt && 
-                        assessmentDuration && 
-                        (new Date().getTime() - new Date(c.startedAt).getTime()) > (assessmentDuration * 60 * 1000);
+      const isTimedOut = c.status === 'in_progress' &&
+        c.startedAt &&
+        assessmentDuration &&
+        (new Date().getTime() - new Date(c.startedAt).getTime()) > (assessmentDuration * 60 * 1000);
 
       if (statusFilter === 'timed_out') return isTimedOut;
       if (statusFilter === 'passed') return c.passed === true;
@@ -555,7 +557,7 @@ export default function AssessmentResults() {
       if (statusFilter === 'completed') return c.status === 'completed';
       if (statusFilter === 'in_progress') return c.status === 'in_progress' && !isTimedOut;
       if (statusFilter === 'pending') return c.status === 'pending';
-      
+
       return true;
     })
     .sort((a, b) => {
@@ -663,7 +665,7 @@ export default function AssessmentResults() {
         'Overall Score (%)': c.overallScore !== null ? `${c.overallScore}%` : 'N/A',
         'Correct': c.correctAnswers !== null ? c.correctAnswers : 'N/A',
         'Total Questions': c.totalQuestions !== null ? c.totalQuestions : 'N/A',
-        'Passed': c.passed === null ? 'N/A' : (c.passed ? 'Passed' : 'Failed'),
+        'Passed': c.passed === null ? 'Needs Grading' : (c.passed ? 'Passed' : 'Failed'),
         'Started At': startDate,
         'Completed At': completionDate
       };
@@ -717,8 +719,8 @@ export default function AssessmentResults() {
         margin: 10,
         filename: fileName,
         image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
+        html2canvas: {
+          scale: 2,
           useCORS: true,
           logging: false,
           letterRendering: true
@@ -729,7 +731,7 @@ export default function AssessmentResults() {
 
       const worker = html2pdf().set(options).from(element);
       await worker.save();
-      
+
       toast({
         title: 'Bulk Download Complete',
         description: 'All candidate reports have been merged and downloaded.',
@@ -758,8 +760,8 @@ export default function AssessmentResults() {
         margin: 10,
         filename: fileName,
         image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
+        html2canvas: {
+          scale: 2,
           useCORS: true,
           logging: false,
           letterRendering: true
@@ -770,7 +772,7 @@ export default function AssessmentResults() {
 
       const worker = html2pdf().set(options).from(element);
       await worker.save();
-      
+
       toast({
         title: 'Report Downloaded',
         description: 'The candidate report has been saved as a PDF.',
@@ -831,8 +833,8 @@ export default function AssessmentResults() {
                 <CardContent className="p-4 flex items-center gap-4">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="Search candidates by name or email..." 
+                    <Input
+                      placeholder="Search candidates by name or email..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 h-10 border-primary/10 focus-visible:ring-primary/20"
@@ -929,10 +931,10 @@ export default function AssessmentResults() {
                           </TableCell>
                           <TableCell>
                             {(() => {
-                              const isTimedOut = candidate.status === 'in_progress' && 
-                                               candidate.startedAt && 
-                                               assessmentDuration && 
-                                               (new Date().getTime() - new Date(candidate.startedAt).getTime()) > (assessmentDuration * 60 * 1000);
+                              const isTimedOut = candidate.status === 'in_progress' &&
+                                candidate.startedAt &&
+                                assessmentDuration &&
+                                (new Date().getTime() - new Date(candidate.startedAt).getTime()) > (assessmentDuration * 60 * 1000);
 
                               if ((candidate.status === 'completed' && candidate.submissionMode === 'auto') || isTimedOut) {
                                 return <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-transparent capitalize text-[10px] font-bold py-0 h-5 px-2.5 whitespace-nowrap w-fit flex items-center justify-center shadow-sm">Auto-Submitted</Badge>;
@@ -986,11 +988,11 @@ export default function AssessmentResults() {
                           })}
                           <TableCell>
                             <span className="text-xs font-medium">
-                              {candidate.completedAt ? format(new Date(candidate.completedAt), 'MMM dd, HH:mm') : 
-                               (candidate.status === 'in_progress' && candidate.startedAt && assessmentDuration && 
-                                (new Date().getTime() - new Date(candidate.startedAt).getTime()) > (assessmentDuration * 60 * 1000)) ? 
-                                format(new Date(new Date(candidate.startedAt).getTime() + (assessmentDuration * 60 * 1000)), 'MMM dd, HH:mm') + ' (Est.)' : 
-                                '—'}
+                              {candidate.completedAt ? format(new Date(candidate.completedAt), 'MMM dd, HH:mm') :
+                                (candidate.status === 'in_progress' && candidate.startedAt && assessmentDuration &&
+                                  (new Date().getTime() - new Date(candidate.startedAt).getTime()) > (assessmentDuration * 60 * 1000)) ?
+                                  format(new Date(new Date(candidate.startedAt).getTime() + (assessmentDuration * 60 * 1000)), 'MMM dd, HH:mm') + ' (Est.)' :
+                                  '—'}
                             </span>
                           </TableCell>
                           <TableCell>
@@ -1009,7 +1011,7 @@ export default function AssessmentResults() {
                                 <Badge variant="destructive" className="text-[10px] font-bold h-5 px-2 uppercase">Failed</Badge>
                               )
                             ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
+                              <Badge variant="outline" className="text-[9px] font-black text-amber-700 bg-amber-100 border-amber-300 px-2 h-5 uppercase tracking-wide">Needs Grading</Badge>
                             )}
                           </TableCell>
                           <TableCell className="text-right">
@@ -1056,16 +1058,16 @@ export default function AssessmentResults() {
       </div>
 
       <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pr-10">
               <div className="flex items-center gap-2 text-2xl">
                 <Eye className="h-6 w-6 text-primary" />
                 Candidate Report: {selectedCandidate?.name}
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="font-bold flex items-center gap-2"
                 onClick={downloadPDF}
                 disabled={downloading || loadingDetailed}
@@ -1080,25 +1082,24 @@ export default function AssessmentResults() {
           </DialogHeader>
 
           {selectedCandidate && (
-            <div ref={reportRef}><CandidateReportView 
-              candidate={selectedCandidate} 
-              detailedResponses={detailedResponses} 
-              loadingDetailed={loadingDetailed} 
-              getDomainName={getDomainName} 
-              onClose={() => setShowResultDialog(false)} 
+            <div ref={reportRef}><CandidateReportView
+              candidate={selectedCandidate}
+              detailedResponses={detailedResponses}
+              loadingDetailed={loadingDetailed}
+              getDomainName={getDomainName}
+              onClose={() => setShowResultDialog(false)}
               assessmentTitle={assessmentTitle}
-              onGradeSaved={(newScore: number, newUnanswered: number, responseId: string, parsedScore: number, feedback: string, newPassed?: boolean, newCorrectAnswers?: number) => {
-                setDetailedResponses(prev => prev.map(r => 
-                  r.responseId === responseId 
-                    ? { ...r, manualScore: parsedScore, graderFeedback: feedback } 
+              onGradeSaved={(newScore: number, newUnanswered: number, responseId: string, parsedScore: number, feedback: string, newPassed?: boolean, questionId?: string) => {
+                setDetailedResponses(prev => prev.map(r =>
+                  (r.responseId === responseId || r.questionId === questionId)
+                    ? { ...r, responseId: responseId, manualScore: parsedScore, graderFeedback: feedback }
                     : r
                 ));
-                setSelectedCandidate(prev => prev ? { 
-                  ...prev, 
+                setSelectedCandidate(prev => prev ? {
+                  ...prev,
                   overallScore: newScore,
                   unansweredQuestions: newUnanswered !== undefined ? newUnanswered : prev.unansweredQuestions,
-                  passed: newPassed !== undefined ? newPassed : prev.passed,
-                  correctAnswers: newCorrectAnswers !== undefined ? newCorrectAnswers : prev.correctAnswers
+                  passed: newPassed !== undefined ? newPassed : prev.passed
                 } : prev);
                 fetchResults();
               }}
@@ -1110,18 +1111,18 @@ export default function AssessmentResults() {
       <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', width: '1000px', backgroundColor: 'white' }}>
         <div ref={bulkReportRef}>
           {candidates.filter(c => c.status === 'completed').map((c, idx) => (
-             <div key={c.id} style={{ pageBreakAfter: 'always', paddingBottom: '20px', paddingTop: '20px' }}>
-                <div style={{ marginBottom: '20px', paddingBottom: '10px', borderBottom: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                   <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>Candidate Report: {c.name}</h2>
-                </div>
-                <CandidateReportView 
-                   candidate={c} 
-                   detailedResponses={bulkDetailedResponses[c.id] || []} 
-                   loadingDetailed={false} 
-                   getDomainName={getDomainName} 
-                   assessmentTitle={assessmentTitle}
-                />
-             </div>
+            <div key={c.id} style={{ pageBreakAfter: 'always', paddingBottom: '20px', paddingTop: '20px' }}>
+              <div style={{ marginBottom: '20px', paddingBottom: '10px', borderBottom: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>Candidate Report: {c.name}</h2>
+              </div>
+              <CandidateReportView
+                candidate={c}
+                detailedResponses={bulkDetailedResponses[c.id] || []}
+                loadingDetailed={false}
+                getDomainName={getDomainName}
+                assessmentTitle={assessmentTitle}
+              />
+            </div>
           ))}
         </div>
       </div>

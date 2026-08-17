@@ -27,7 +27,7 @@ async function startServer() {
             console.log(`🔑 JWT Secret (First 10 chars): ${AUTH_CONFIG.JWT_SECRET ? AUTH_CONFIG.JWT_SECRET.substring(0, 10) : 'None'}...`);
             console.log(`🔑 Env JWT Secret (First 10 chars): ${process.env.JWT_SECRET ? process.env.JWT_SECRET.substring(0, 10) : 'None'}...`);
             console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-            console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN || 'https://skillztest.scaloz.com'}`);
+            console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN || 'https://skillz.scaloz.com'}`);
         });
 
         // Optimization for high concurrency / load testing

@@ -144,14 +144,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     sessionStorage.removeItem('auth_token');
     setUser(null);
-    
+
     // Redirect back to Scaloz Workspace
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
-    
+
     // Check if we are running locally (localhost, *.localhost, or local IP)
     const isLocal = import.meta.env.DEV || hostname === 'localhost' || hostname.endsWith('.localhost') || !!hostname.match(/^\d+\.\d+\.\d+\.\d+$/);
-    
+
     if (isLocal) {
       window.location.href = import.meta.env.VITE_MAIN_TENANT_URL || `http://${hostname}:3001/Home`;
     } else {
@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (tenantUrl) {
         window.location.href = `${tenantUrl}/Home`;
       } else {
-        const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace');
+        const targetHost = hostname.replace(/skillz|talentiq/gi, 'apps');
         window.location.href = `${protocol}//${targetHost}/Home`;
       }
     }

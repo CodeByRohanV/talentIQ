@@ -24,12 +24,12 @@ export default function ResetPassword() {
     if (hostname !== 'localhost' && !hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
       const protocol = window.location.protocol;
       const tenantUrl = import.meta.env.VITE_TENANT_URL;
-      const targetHost = hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace');
+      const targetHost = hostname.replace(/skillz|talentiq/gi, 'apps');
       targetUrl = tenantUrl ? `${tenantUrl}/Home` : `${protocol}//${targetHost}/Home`;
     } else {
       targetUrl = import.meta.env.VITE_MAIN_TENANT_URL || 'http://localhost:3001/Home';
     }
-    
+
     // Redirect after a 2-second delay to show the message
     const timer = setTimeout(() => {
       window.location.href = targetUrl;
@@ -56,12 +56,12 @@ export default function ResetPassword() {
       <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.08)]">
         <div className="bg-[#2563EB] h-1.5 w-full top-0 left-0 absolute rounded-t-2xl" />
         <img src="/logo.png" alt="TalentiQ" className="w-16 h-16 mx-auto mb-6 rounded-xl shadow-md border border-slate-100" />
-        
+
         <h2 className="text-2xl font-black text-[#0F172A] mb-3">Reset Password Disabled</h2>
         <p className="text-slate-500 font-semibold mb-6 leading-relaxed">
           TalentiQ is integrated with the Scaloz Workspace. Manual password changes and resets are disabled.
         </p>
-        
+
         <div className="inline-flex items-center gap-2 text-sm font-black text-[#2563EB] bg-[#2563EB]/5 px-4 py-2 rounded-lg animate-pulse">
           Redirecting to Scaloz Workspace...
         </div>

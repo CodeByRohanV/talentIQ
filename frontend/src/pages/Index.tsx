@@ -33,7 +33,7 @@ export default function Index() {
     const workspaceUrl: string =
       (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost'))
         ? (import.meta.env.VITE_MAIN_TENANT_URL || 'http://localhost:3001/Home')
-        : (import.meta.env.VITE_TENANT_URL ? `${import.meta.env.VITE_TENANT_URL}/Home` : `${protocol}//${hostname.replace(/skillztest/gi, 'workspacetest').replace(/skillz|talentiq/gi, 'workspace')}/Home`);
+        : (import.meta.env.VITE_TENANT_URL ? `${import.meta.env.VITE_TENANT_URL}/Home` : `${protocol}//${hostname.replace(/skillz|talentiq/gi, 'apps')}/Home`);
 
     if (!loading) {
       if (user) {

@@ -57,3 +57,24 @@ export const updateGrade = async (responseId, manualScore, graderFeedback) => {
     );
     return result.rows[0];
 };
+
+export const upsertGrade = async (candidateId, questionId, manualScore, graderFeedback) => {
+    // Try to find the existing response
+    const existing = await query(
+        'SELECT id FROM responses WHERE candidate_id = $1 AND question_id = $2',
+        [candidateId, questionId]
+    );
+
+    if (existing.rows.length > 0) {
+        return await updateGrade(existing.rows[0].id, manualScore, graderFeedback);
+    } else {
+        // Insert new row for unanswered question being graded
+        const result = await query(
+            `INSERT INTO responses (candidate_id, question_id, manual_score, grader_feedback, text_answer)
+             VALUES ($1, $2, $3, $4, '')
+             RETURNING *`,
+            [candidateId, questionId, manualScore, graderFeedback]
+        );
+        return result.rows[0];
+    }
+};

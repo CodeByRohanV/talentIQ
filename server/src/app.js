@@ -42,14 +42,14 @@ app.use(helmet({
 // CORS configuration
 const allowedOrigins = process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-    : ['https://skillztest.scaloz.com', 'http://skillztest.scaloz.com', 'https://*.skillztest.scaloz.com', 'http://*.skillztest.scaloz.com'];
+    : ['https://skillz.scaloz.com', 'http://skillz.scaloz.com', 'https://*.skillz.scaloz.com', 'http://*.skillz.scaloz.com'];
 
 const corsOptions = {
     origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
-        // Case-insensitive check for allowed origins (supporting wildcards like *.skillztest.scaloz.com)
+        // Case-insensitive check for allowed origins (supporting wildcards like *.skillz.scaloz.com)
         const isAllowed = allowedOrigins.some(allowed => {
             if (allowed === '*') return true;
             if (allowed.toLowerCase() === origin.toLowerCase()) return true;
