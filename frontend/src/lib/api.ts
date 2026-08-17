@@ -43,7 +43,8 @@ export const resolveApiUrl = (configuredUrl: string): string => {
 
     const currentHost = window.location.hostname;
     const isLocal = import.meta.env.DEV || currentHost === 'localhost' || currentHost.endsWith('.localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(currentHost);
-    if (isLocal && configuredUrl.includes('localhost')) {
+    const isIpAddress = /^\d+\.\d+\.\d+\.\d+$/.test(currentHost);
+    if (isLocal && configuredUrl.includes('localhost') && currentHost !== 'localhost' && !currentHost.endsWith('.localhost')) {
         return configuredUrl.replace('localhost', currentHost);
     }
 

@@ -29,14 +29,14 @@ export const sendVerificationEmail = async (email, token) => {
     const verificationLink = `${getFrontendBaseUrl()}/verify?token=${token}`;
 
     const mailOptions = {
-        from: `"skillz" <${process.env.SMTP_USER}>`,
+        from: `"TalentiQ" <${process.env.SMTP_USER}>`,
         to: email,
-        subject: 'Verify your email - skillz',
+        subject: 'Verify your email - TalentiQ',
         html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; rounded: 8px;">
-                <h2 style="color: #6d28d9; text-align: center;">Welcome to skillz</h2>
+                <h2 style="color: #6d28d9; text-align: center;">Welcome to TalentiQ</h2>
                 <p>Hello,</p>
-                <p>Thank you for signing up for skillz! To get started, please verify your email address by clicking the button below:</p>
+                <p>Thank you for signing up for TalentiQ! To get started, please verify your email address by clicking the button below:</p>
                 <div style="text-align: center; margin: 30px 0;">
                     <a href="${verificationLink}" style="background-color: #6d28d9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Verify Email Address</a>
                 </div>
@@ -55,9 +55,9 @@ export const sendPasswordResetEmail = async (email, token) => {
     const resetLink = `${getFrontendBaseUrl()}/reset-password?token=${token}`;
 
     const mailOptions = {
-        from: `"skillz" <${process.env.SMTP_USER}>`,
+        from: `"TalentiQ" <${process.env.SMTP_USER}>`,
         to: email,
-        subject: 'Reset your password - skillz',
+        subject: 'Reset your password - TalentiQ',
         html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
                 <h2 style="color: #6d28d9; text-align: center;">Reset Your Password</h2>
@@ -81,14 +81,14 @@ export const sendCredentialsEmail = async (email, temporaryPassword) => {
     const loginLink = `${getFrontendBaseUrl()}/auth`;
 
     const mailOptions = {
-        from: `"skillz" <${process.env.SMTP_USER}>`,
+        from: `"TalentiQ" <${process.env.SMTP_USER}>`,
         to: email,
-        subject: 'Your skillz Account Credentials',
+        subject: 'Your TalentiQ Account Credentials',
         html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-                <h2 style="color: #6d28d9; text-align: center;">Welcome to skillz</h2>
+                <h2 style="color: #6d28d9; text-align: center;">Welcome to TalentiQ</h2>
                 <p>Hello,</p>
-                <p>An administrator has created an account for you on the skillz platform.</p>
+                <p>An administrator has created an account for you on the TalentiQ platform.</p>
                 <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
                     <p style="margin: 0;"><strong>Email:</strong> ${email}</p>
                     <p style="margin: 10px 0 0 0;"><strong>Temporary Password:</strong> ${temporaryPassword}</p>
@@ -110,16 +110,16 @@ export const sendAssessmentLinkEmail = async (email, assessmentTitle, shareToken
     const assessmentLink = `${getFrontendBaseUrl()}/test/${shareToken}`;
 
     const mailOptions = {
-        from: `"skillz" <${process.env.SMTP_USER}>`,
+        from: `"TalentiQ" <${process.env.SMTP_USER}>`,
         to: email,
-        subject: `Assessment Invite: ${assessmentTitle} - skillz`,
+        subject: `Assessment Invite: ${assessmentTitle} - TalentiQ`,
         html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <h2 style="color: #6d28d9; margin: 0;">skillz Assessment</h2>
+                    <h2 style="color: #6d28d9; margin: 0;">TalentiQ Assessment</h2>
                 </div>
                 <p>Hello,</p>
-                <p>You have been invited to take the <strong>${assessmentTitle}</strong> assessment on skillz.</p>
+                <p>You have been invited to take the <strong>${assessmentTitle}</strong> assessment on TalentiQ.</p>
                 <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
                     <p style="margin: 0 0 15px 0; color: #4b5563;">Click the button below to start your test:</p>
                     <a href="${assessmentLink}" style="background-color: #6d28d9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Start Assessment</a>
@@ -127,7 +127,7 @@ export const sendAssessmentLinkEmail = async (email, assessmentTitle, shareToken
                 <p>If the button above doesn't work, copy and paste the following link into your browser:</p>
                 <p style="word-break: break-all; color: #6d28d9;">${assessmentLink}</p>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="font-size: 12px; color: #666; text-align: center;">This is an automated message from skillz. Please do not reply to this email.</p>
+                <p style="font-size: 12px; color: #666; text-align: center;">This is an automated message from TalentiQ. Please do not reply to this email.</p>
             </div>
         `,
     };
@@ -137,13 +137,13 @@ export const sendAssessmentLinkEmail = async (email, assessmentTitle, shareToken
 
 export const sendOtpEmail = async (email, otp, assessmentTitle) => {
     const mailOptions = {
-        from: `"skillz" <${process.env.SMTP_USER}>`,
+        from: `"TalentiQ" <${process.env.SMTP_USER}>`,
         to: email,
         subject: `Your Verification Code for ${assessmentTitle}`,
         html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <h2 style="color: #6d28d9; margin: 0;">skillz Verification</h2>
+                    <h2 style="color: #6d28d9; margin: 0;">TalentiQ Verification</h2>
                 </div>
                 <p>Hello,</p>
                 <p>You requested to start the assessment <strong>${assessmentTitle}</strong>. Please use the following 6-digit code to verify your email address:</p>

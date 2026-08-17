@@ -139,7 +139,7 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
                     display: 'inline-block',
                     lineHeight: '1.2'
                   }}>
-                    {candidate.passed === null ? 'NEEDS GRADING' : (candidate.passed ? 'PASSED' : 'FAILED')}
+                    {candidate.passed === null ? 'NEEDS GRADING' : (candidate.passed ? 'Pass' : 'Fail')}
                   </div>
                 </div>
               </td>
@@ -270,7 +270,7 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
         ) : (
           <div className="space-y-6">
             {detailedResponses.map((item, idx) => (
-              <Card key={`${candidate?.id || 'candidate'}-${item.questionId || idx}`} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }} className={cn(
+              <Card id={`question-${item.responseId || idx}`} key={`${candidate?.id || 'candidate'}-${item.questionId || idx}`} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }} className={cn(
                 "shadow-none border-l-4 break-inside-avoid",
                 item.questionType === 'SUBJECTIVE'
                   ? "border-l-blue-500 bg-blue-50/10"
@@ -482,7 +482,27 @@ const CandidateReportView = ({ candidate, detailedResponses, loadingDetailed, ge
       </div>
 
       <div className="flex justify-end pt-4">
-        <Button onClick={() => onClose && onClose()} className="px-8">Close Report</Button>
+        <Button onClick={() => {
+          const firstUngradedIndex = detailedResponses.findIndex(r => r.manualScore === null && r.questionType === 'SUBJECTIVE');
+          if (firstUngradedIndex !== -1) {
+            const item = detailedResponses[firstUngradedIndex];
+            const elId = `question-${item.responseId || firstUngradedIndex}`;
+            const el = document.getElementById(elId);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              
+              el.style.transition = 'box-shadow 0.3s ease-in-out';
+              el.style.boxShadow = '0 0 0 3px rgba(234, 179, 8, 0.5)';
+              setTimeout(() => { el.style.boxShadow = 'none'; }, 2000);
+              
+              toast({ title: 'Action Required', description: 'Please grade all subjective questions before closing.', variant: 'destructive' });
+              return;
+            }
+          }
+          onClose && onClose();
+        }} className="px-8">
+          Close Report
+        </Button>
       </div>
     </div>
 
@@ -512,6 +532,7 @@ export default function AssessmentResults() {
   const reportRef = useRef<HTMLDivElement>(null);
 
   const [bulkDownloading, setBulkDownloading] = useState(false);
+  const [showUngradedGuard, setShowUngradedGuard] = useState(false);
   const [bulkDetailedResponses, setBulkDetailedResponses] = useState<Record<string, DetailedResponse[]>>({});
   const bulkReportRef = useRef<HTMLDivElement>(null);
 
@@ -665,7 +686,7 @@ export default function AssessmentResults() {
         'Overall Score (%)': c.overallScore !== null ? `${c.overallScore}%` : 'N/A',
         'Correct': c.correctAnswers !== null ? c.correctAnswers : 'N/A',
         'Total Questions': c.totalQuestions !== null ? c.totalQuestions : 'N/A',
-        'Passed': c.passed === null ? 'Needs Grading' : (c.passed ? 'Passed' : 'Failed'),
+        'Passed': c.passed === null ? 'Needs Grading' : (c.passed ? 'Pass' : 'Fail'),
         'Started At': startDate,
         'Completed At': completionDate
       };
@@ -811,11 +832,23 @@ export default function AssessmentResults() {
             <p className="text-muted-foreground mt-1">View candidate scores and performance</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <Button variant="outline" onClick={downloadAllPDFs} disabled={bulkDownloading || candidates.filter(c => c.status === 'completed').length === 0}>
+            <Button variant="outline" onClick={() => {
+              if (candidates.some(c => c.status === 'completed' && c.passed === null)) {
+                setShowUngradedGuard(true);
+                return;
+              }
+              downloadAllPDFs();
+            }} disabled={bulkDownloading || candidates.filter(c => c.status === 'completed').length === 0}>
               {bulkDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
               {bulkDownloading ? 'Generating PDFs...' : 'Download All Reports'}
             </Button>
-            <Button variant="outline" onClick={exportToExcel}>
+            <Button variant="outline" onClick={() => {
+              if (candidates.some(c => c.status === 'completed' && c.passed === null)) {
+                setShowUngradedGuard(true);
+                return;
+              }
+              exportToExcel();
+            }}>
               <FileSpreadsheet className="mr-2 h-4 w-4" />
               Export Excel
             </Button>
@@ -847,12 +880,12 @@ export default function AssessmentResults() {
                         variant={statusFilter === filter ? 'secondary' : 'ghost'}
                         size="sm"
                         className={cn(
-                          "h-8 text-[11px] font-black uppercase tracking-wider px-3 rounded-lg capitalize",
+                          "h-8 text-[11px] font-black tracking-wider px-3 rounded-lg capitalize",
                           statusFilter === filter ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-primary"
                         )}
                         onClick={() => setStatusFilter(filter)}
                       >
-                        {filter === 'pending' ? 'Not Started' : filter.replace('_', ' ')}
+                        {filter === 'pending' ? 'Not Started' : (filter === 'passed' ? 'Pass' : (filter === 'failed' ? 'Fail' : filter.replace('_', ' ')))}
                       </Button>
                     ))}
                   </div>
@@ -863,10 +896,10 @@ export default function AssessmentResults() {
                   <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Average Score</p>
                   <p className="text-2xl font-black text-primary">
                     {(() => {
-                      const completedWithScores = candidates.filter(c => c.status === 'completed' && c.overallScore !== null && !isNaN(Number(c.overallScore)));
-                      if (completedWithScores.length === 0) return '0%';
-                      const totalScore = completedWithScores.reduce((sum, c) => sum + Number(c.overallScore), 0);
-                      return Math.round(totalScore / completedWithScores.length) + '%';
+                      const fullyGraded = candidates.filter(c => c.status === 'completed' && c.passed !== null && c.overallScore !== null && !isNaN(Number(c.overallScore)));
+                      if (fullyGraded.length === 0) return '0%';
+                      const totalScore = fullyGraded.reduce((sum, c) => sum + Number(c.overallScore), 0);
+                      return Math.round(totalScore / fullyGraded.length) + '%';
                     })()}
                   </p>
                 </CardContent>
@@ -1006,12 +1039,12 @@ export default function AssessmentResults() {
                           <TableCell>
                             {candidate.passed !== null ? (
                               candidate.passed ? (
-                                <Badge className="bg-success text-white text-[10px] font-bold h-5 px-2">PASSED</Badge>
+                                <Badge className="bg-success text-white text-xs font-bold h-6 px-3">Pass</Badge>
                               ) : (
-                                <Badge variant="destructive" className="text-[10px] font-bold h-5 px-2 uppercase">Failed</Badge>
+                                <Badge variant="destructive" className="text-xs font-bold h-6 px-3">Fail</Badge>
                               )
                             ) : (
-                              <Badge variant="outline" className="text-[9px] font-black text-amber-700 bg-amber-100 border-amber-300 px-2 h-5 uppercase tracking-wide">Needs Grading</Badge>
+                              <Badge variant="outline" className="text-[10px] font-black text-amber-700 bg-amber-100 border-amber-300 px-3 h-6 tracking-wide">Needs Grading</Badge>
                             )}
                           </TableCell>
                           <TableCell className="text-right">
@@ -1069,7 +1102,13 @@ export default function AssessmentResults() {
                 variant="outline"
                 size="sm"
                 className="font-bold flex items-center gap-2"
-                onClick={downloadPDF}
+                onClick={() => {
+                  if (detailedResponses.some(r => r.manualScore === null && r.questionType === 'SUBJECTIVE')) {
+                    setShowUngradedGuard(true);
+                    return;
+                  }
+                  downloadPDF();
+                }}
                 disabled={downloading || loadingDetailed}
               >
                 {downloading ? <Loader2 className="h-4 w-4 animate-spin font-bold" /> : <Download className="h-4 w-4" />}
@@ -1126,6 +1165,23 @@ export default function AssessmentResults() {
           ))}
         </div>
       </div>
+
+      <Dialog open={showUngradedGuard} onOpenChange={setShowUngradedGuard}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-center gap-2 text-amber-600 dark:text-amber-500">
+              <AlertTriangle className="h-6 w-6" />
+              Grading Incomplete
+            </DialogTitle>
+            <DialogDescription className="pt-3 text-center text-base text-slate-600 dark:text-slate-300">
+              Please grade all pending subjective responses before exporting reports.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center mt-2">
+            <Button onClick={() => setShowUngradedGuard(false)}>Understood</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
 
   );

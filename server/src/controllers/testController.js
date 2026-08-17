@@ -122,14 +122,27 @@ async function evaluateAndSaveResult(candidateId, assessmentId, attemptId, submi
     const thresholds = assessment?.thresholds || { overall: 50 };
     
     let hasUngradedSubjective = false;
+    const ungradedToZeroPromises = [];
+
     questions.forEach(q => {
         if (q.question_type === 'SUBJECTIVE') {
             const response = responseMap.get(q.id);
-            if (!response || response.manual_score === null || response.manual_score === undefined) {
+            const hasAnswer = response && response.text_answer && response.text_answer.trim() !== '';
+
+            if (!hasAnswer) {
+                // Completely empty or never answered: automatic zero!
+                ungradedToZeroPromises.push(
+                    Response.upsertGrade(candidateId, q.id, 0, 'Automatically marked as zero (unanswered)')
+                );
+            } else if (response.manual_score === null || response.manual_score === undefined) {
                 hasUngradedSubjective = true;
             }
         }
     });
+
+    if (ungradedToZeroPromises.length > 0) {
+        await Promise.all(ungradedToZeroPromises);
+    }
 
     const passed = hasUngradedSubjective ? null : (overallScore >= (thresholds.overall || 50));
 
