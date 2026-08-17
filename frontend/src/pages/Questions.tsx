@@ -478,6 +478,7 @@ export default function Questions() {
         options: q.options,
         correctAnswer: q.correct_answer,
         difficulty: q.difficulty,
+        questionType: q.question_type,
       }));
       await questionsAPI.bulkCreate(questionsToInsert);
       toast({ title: 'Success!', description: `${questionsToInsert.length} questions imported` });

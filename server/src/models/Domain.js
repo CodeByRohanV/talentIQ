@@ -16,20 +16,39 @@ export const findDomainsRoleAware = async (actorId, tenantId, roles, managerId) 
     const isManager = roles.includes('MANAGER');
     const isRecruiter = roles.includes('RECRUITER');
 
+    const getCountsSubquery = (roleConditions) => `
+        (SELECT jsonb_build_object(
+            'total', COALESCE(SUM(counts.total), 0)::int,
+            'types', COALESCE(jsonb_object_agg(
+                counts.question_type,
+                jsonb_build_object(
+                    'total', counts.total::int,
+                    'easy', counts.easy::int,
+                    'medium', counts.medium::int,
+                    'hard', counts.hard::int
+                )
+            ), '{}'::jsonb)
+        ) FROM (
+            SELECT COALESCE(q.question_type, 'MCQ') as question_type,
+                   COUNT(*) as total,
+                   COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'easy') as easy,
+                   COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'medium' OR q.difficulty IS NULL) as medium,
+                   COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'hard') as hard
+            FROM questions q 
+            WHERE (q.domain_id = d.id OR (q.domain_id IS NULL AND q.domain::text = d.slug))
+            AND q.is_deleted = false
+            ${roleConditions}
+            GROUP BY COALESCE(q.question_type, 'MCQ')
+        ) counts) as counts
+    `;
+
     let queryText = "";
     let params = [];
 
     if (isSuperAdmin) {
         queryText = `
             SELECT d.*, 
-                (SELECT jsonb_build_object(
-                    'total', COUNT(*)::int,
-                    'easy', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'easy')::int,
-                    'medium', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'medium' OR q.difficulty IS NULL)::int,
-                    'hard', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'hard')::int
-                ) FROM questions q 
-                 WHERE (q.domain_id = d.id OR (q.domain_id IS NULL AND q.domain::text = d.slug))
-                 AND q.is_deleted = false) as counts
+                ${getCountsSubquery("")}
             FROM domains d
             WHERE d.is_active = true
             ORDER BY d.slug`;
@@ -37,15 +56,7 @@ export const findDomainsRoleAware = async (actorId, tenantId, roles, managerId) 
         params = [tenantId];
         queryText = `
             SELECT d.*, 
-                (SELECT jsonb_build_object(
-                    'total', COUNT(*)::int,
-                    'easy', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'easy')::int,
-                    'medium', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'medium' OR q.difficulty IS NULL)::int,
-                    'hard', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'hard')::int
-                ) FROM questions q 
-                 WHERE (q.domain_id = d.id OR (q.domain_id IS NULL AND q.domain::text = d.slug))
-                 AND (split_part(q.created_by::text, '_', 1) = $1 OR q.created_by IS NULL)
-                 AND q.is_deleted = false) as counts
+                ${getCountsSubquery("AND (split_part(q.created_by::text, '_', 1) = $1 OR q.created_by IS NULL)")}
             FROM domains d
             WHERE d.is_active = true
             AND (split_part(d.recruiter_id::text, '_', 1) = $1 OR d.recruiter_id IS NULL)
@@ -54,16 +65,7 @@ export const findDomainsRoleAware = async (actorId, tenantId, roles, managerId) 
         params = [tenantId, managerId || actorId];
         queryText = `
             SELECT d.*, 
-                (SELECT jsonb_build_object(
-                    'total', COUNT(*)::int,
-                    'easy', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'easy')::int,
-                    'medium', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'medium' OR q.difficulty IS NULL)::int,
-                    'hard', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'hard')::int
-                ) FROM questions q 
-                 WHERE (q.domain_id = d.id OR (q.domain_id IS NULL AND q.domain::text = d.slug))
-                 AND (split_part(q.created_by::text, '_', 1) = $1 OR q.created_by IS NULL)
-                 AND (q.created_by_manager_id = $2 OR q.created_by IS NULL)
-                 AND q.is_deleted = false) as counts
+                ${getCountsSubquery("AND (split_part(q.created_by::text, '_', 1) = $1 OR q.created_by IS NULL) AND (q.created_by_manager_id = $2 OR q.created_by IS NULL)")}
             FROM domains d
             WHERE d.is_active = true
             AND (split_part(d.recruiter_id::text, '_', 1) = $1 OR d.recruiter_id IS NULL)
@@ -73,16 +75,7 @@ export const findDomainsRoleAware = async (actorId, tenantId, roles, managerId) 
         params = [tenantId, actorId, managerId];
         queryText = `
             SELECT d.*, 
-                (SELECT jsonb_build_object(
-                    'total', COUNT(*)::int,
-                    'easy', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'easy')::int,
-                    'medium', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'medium' OR q.difficulty IS NULL)::int,
-                    'hard', COUNT(*) FILTER (WHERE LOWER(TRIM(q.difficulty)) = 'hard')::int
-                ) FROM questions q 
-                 WHERE (q.domain_id = d.id OR (q.domain_id IS NULL AND q.domain::text = d.slug))
-                 AND (split_part(q.created_by::text, '_', 1) = $1 OR q.created_by IS NULL)
-                 AND (q.created_by_manager_id = $3 OR q.created_by_manager_id = $2 OR q.created_by IS NULL)
-                 AND q.is_deleted = false) as counts
+                ${getCountsSubquery("AND (split_part(q.created_by::text, '_', 1) = $1 OR q.created_by IS NULL) AND (q.created_by_manager_id = $3 OR q.created_by_manager_id = $2 OR q.created_by IS NULL)")}
             FROM domains d
             WHERE d.is_active = true
             AND (split_part(d.recruiter_id::text, '_', 1) = $1 OR d.recruiter_id IS NULL)
@@ -93,10 +86,7 @@ export const findDomainsRoleAware = async (actorId, tenantId, roles, managerId) 
         params = [tenantId, actorId];
         queryText = `
             SELECT d.*, 
-                (SELECT jsonb_build_object('total', COUNT(*)::int) FROM questions q 
-                 WHERE (q.domain_id = d.id OR (q.domain_id IS NULL AND q.domain::text = d.slug))
-                 AND split_part(q.created_by::text, '_', 1) = $1 AND q.created_by = $2
-                 AND q.is_deleted = false) as counts
+                ${getCountsSubquery("AND split_part(q.created_by::text, '_', 1) = $1 AND q.created_by = $2")}
             FROM domains d
             WHERE d.is_active = true
             AND (split_part(d.recruiter_id::text, '_', 1) = $1 OR d.recruiter_id IS NULL)

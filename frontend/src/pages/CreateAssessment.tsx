@@ -50,8 +50,8 @@ export default function CreateAssessment() {
   const [duration, setDuration] = useState(60);
   const [domains, setDomains] = useState<Domain[]>([]);
 
-  // questionsConfig: { [domainId]: { easy: number, medium: number, hard: number } }
-  const [questionsConfig, setQuestionsConfig] = useState<Record<string, Record<string, number>>>({});
+  // Auto Selection State
+  const [questionsConfig, setQuestionsConfig] = useState<Record<string, Record<string, Record<string, number>>>>({});
   const [thresholds, setThresholds] = useState<Record<string, number>>({ overall: 60 });
 
   const [securityConfig, setSecurityConfig] = useState({
@@ -79,57 +79,11 @@ export default function CreateAssessment() {
   const [shareLink, setShareLink] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Manual Selection State
-  const [selectionMode, setSelectionMode] = useState<'auto' | 'manual'>('auto');
-  const [selectedManualIds, setSelectedManualIds] = useState<Set<string>>(new Set());
-  const [manualQuestions, setManualQuestions] = useState<any[]>([]);
-  const [manualSearch, setManualSearch] = useState('');
-  const [manualDomainFilter, setManualDomainFilter] = useState('all');
-  const [manualDifficultyFilter, setManualDifficultyFilter] = useState('all');
-  const [manualTypeFilter, setManualTypeFilter] = useState('all');
-  const [manualPage, setManualPage] = useState(1);
-  const [manualTotalPages, setManualTotalPages] = useState(1);
-  const [manualTotalItems, setManualTotalItems] = useState(0);
-  const [isFetchingManual, setIsFetchingManual] = useState(false);
+
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
   }, [user, authLoading, navigate]);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setManualPage(1);
-  }, [manualSearch, manualDomainFilter, manualDifficultyFilter, manualTypeFilter]);
-
-  // Fetch manual questions whenever filters or page change and we are in manual mode
-  useEffect(() => {
-    if (selectionMode === 'manual') {
-      const delay = setTimeout(() => {
-        fetchManualQuestions();
-      }, 300);
-      return () => clearTimeout(delay);
-    }
-  }, [selectionMode, manualSearch, manualDomainFilter, manualDifficultyFilter, manualTypeFilter, manualPage]);
-
-  const fetchManualQuestions = async () => {
-    setIsFetchingManual(true);
-    try {
-      const filters: any = { limit: 20, page: manualPage };
-      if (manualSearch) filters.search = manualSearch;
-      if (manualDomainFilter !== 'all') filters.domainId = manualDomainFilter;
-      if (manualDifficultyFilter !== 'all') filters.difficulty = manualDifficultyFilter;
-      if (manualTypeFilter !== 'all') filters.questionType = manualTypeFilter;
-      
-      const res = await questionsAPI.getAll(filters) as any;
-      setManualQuestions(res.data || []);
-      setManualTotalItems(res.total || 0);
-      setManualTotalPages(Math.ceil((res.total || 0) / 20) || 1);
-    } catch (err) {
-      console.error('Failed to fetch questions:', err);
-    } finally {
-      setIsFetchingManual(false);
-    }
-  };
 
   useEffect(() => {
     if (user) {
@@ -150,11 +104,18 @@ export default function CreateAssessment() {
       });
 
       // Initialize config with zeros if not set
-      const initialConfig: Record<string, Record<string, number>> = {};
+      const initialConfig: Record<string, Record<string, Record<string, number>>> = {};
       const initialThresholds: Record<string, number> = { overall: 60 };
 
-      fetchedDomains.forEach((d: Domain) => {
-        initialConfig[d.id] = { easy: 0, medium: 0, hard: 0 };
+      fetchedDomains.forEach((d: any) => {
+        initialConfig[d.id] = {};
+        if (d.counts && d.counts.types) {
+            Object.keys(d.counts.types).forEach(type => {
+                initialConfig[d.id][type] = { easy: 0, medium: 0, hard: 0 };
+            });
+        } else {
+            initialConfig[d.id]['MCQ'] = { easy: 0, medium: 0, hard: 0 };
+        }
         initialThresholds[d.id] = 50;
       });
 
@@ -178,14 +139,14 @@ export default function CreateAssessment() {
     }
 
     const totalAuto = Object.values(questionsConfig).reduce((sum, domainConfig) => {
-      return sum + Object.values(domainConfig).reduce((dSum, count) => dSum + count, 0);
+      return sum + Object.values(domainConfig).reduce((dSum, typeConfig) => {
+          return dSum + Object.values(typeConfig).reduce((tSum, count) => tSum + count, 0);
+      }, 0);
     }, 0);
 
-    const totalManual = selectedManualIds.size;
-    const isAutoEmpty = selectionMode === 'auto' && totalAuto === 0;
-    const isManualEmpty = selectionMode === 'manual' && totalManual === 0;
+    const isAutoEmpty = totalAuto === 0;
 
-    if (isAutoEmpty || isManualEmpty) {
+    if (isAutoEmpty) {
       toast({ title: 'No questions selected', description: 'Please select at least one question', variant: 'destructive' });
       return;
     }
@@ -198,26 +159,23 @@ export default function CreateAssessment() {
       
       const questionIds: string[] = [];
 
-      if (selectionMode === 'auto') {
-        for (const [domainId, config] of Object.entries(questionsConfig)) {
-          for (const [difficulty, count] of Object.entries(config)) {
-            if (count > 0) {
-              const isNumeric = /^\d+$/.test(domainId);
-              const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(domainId);
-              const filters: Record<string, string | number> = { limit: 1000, difficulty };
-              if (isNumeric || isUUID) filters.domainId = domainId;
-              else filters.domain = domainId;
+      for (const [domainId, typesConfig] of Object.entries(questionsConfig)) {
+        for (const [qType, difficulties] of Object.entries(typesConfig)) {
+            for (const [difficulty, count] of Object.entries(difficulties)) {
+              if (count > 0) {
+                const isNumeric = /^\d+$/.test(domainId);
+                const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(domainId);
+                const filters: Record<string, string | number> = { limit: 1000, difficulty, questionType: qType };
+                if (isNumeric || isUUID) filters.domainId = domainId;
+                else filters.domain = domainId;
 
-              const response = await questionsAPI.getAll(filters);
-              const domainQuestions = response.data || [];
-              const shuffled = domainQuestions.sort(() => Math.random() - 0.5).slice(0, count);
-              shuffled.forEach((q: { id: string }) => questionIds.push(q.id));
+                const response = await questionsAPI.getAll(filters);
+                const domainQuestions = response.data || [];
+                const shuffled = domainQuestions.sort(() => Math.random() - 0.5).slice(0, count);
+                shuffled.forEach((q: { id: string }) => questionIds.push(q.id));
+              }
             }
-          }
         }
-      } else {
-        // Manual mode
-        questionIds.push(...Array.from(selectedManualIds));
       }
 
       if (questionIds.length === 0) {
@@ -282,7 +240,9 @@ export default function CreateAssessment() {
   };
 
   const totalQuestionsTotal = Object.values(questionsConfig).reduce((sum, domainConfig) => {
-    return sum + Object.values(domainConfig).reduce((dSum, count) => dSum + count, 0);
+    return sum + Object.values(domainConfig).reduce((dSum, typeConfig) => {
+        return dSum + Object.values(typeConfig).reduce((tSum, count) => tSum + count, 0);
+    }, 0);
   }, 0);
 
   if (authLoading || !user) {
@@ -582,33 +542,11 @@ export default function CreateAssessment() {
               <CardDescription>Select number of questions by domain and difficulty</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex p-1 bg-muted rounded-lg w-fit mb-4">
-                <Button 
-                  type="button"
-                  variant={selectionMode === 'auto' ? 'secondary' : 'ghost'} 
-                  size="sm"
-                  className={cn("h-8 text-xs font-bold px-4", selectionMode === 'auto' && "bg-background shadow-sm")}
-                  onClick={() => setSelectionMode('auto')}
-                >
-                  Auto-Distribution
-                </Button>
-                <Button 
-                  type="button"
-                  variant={selectionMode === 'manual' ? 'secondary' : 'ghost'} 
-                  size="sm"
-                  className={cn("h-8 text-xs font-bold px-4", selectionMode === 'manual' && "bg-background shadow-sm")}
-                  onClick={() => setSelectionMode('manual')}
-                >
-                  Manual Picker
-                </Button>
-              </div>
-
-              {selectionMode === 'auto' ? (
-                <>
+              <div className="pt-2">
                   <Accordion type="multiple" className="w-full space-y-3">
                 {domains.map((domain) => {
-                  const domainConfig = questionsConfig[domain.id] || { easy: 0, medium: 0, hard: 0 };
-                  const domainTotal = Object.values(domainConfig).reduce((s, v) => s + v, 0);
+                  const domainConfig = questionsConfig[domain.id] || {};
+                  const domainTotal = Object.values(domainConfig).reduce((s, typeConfig) => s + Object.values(typeConfig).reduce((t, count) => t + count, 0), 0);
                   const available = domain.counts;
 
                   return (
@@ -623,90 +561,114 @@ export default function CreateAssessment() {
                             <span className="font-bold text-base text-foreground">{domain.name}</span>
                             <span className="text-xs text-muted-foreground">Adjust easy, medium and hard questions</span>
                           </div>
-                          <div className="bg-background/80 px-3 py-1 rounded-full border shadow-sm">
+                          <div className="bg-background/80 px-3 py-1 rounded-full border shadow-sm flex items-center gap-2">
                             <span className={`font-bold ${domainTotal > available.total ? 'text-destructive' : 'text-primary'}`}>
                               {domainTotal}
                             </span>
-                            <span className="text-xs text-muted-foreground ml-1">/ {available.total}</span>
+                            <span className="text-xs text-muted-foreground">/ {available.total} selected</span>
                           </div>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="pb-6 pt-2">
-                        <div className="grid gap-8 pl-4 border-l-2 border-primary/20 mt-2">
-                          {(['easy', 'medium', 'hard'] as const).map((diff) => (
-                            <div key={diff} className="space-y-3 px-2">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div className={cn(
-                                    "w-1.5 h-1.5 rounded-full",
-                                    diff === 'easy' ? "bg-green-500" : diff === 'medium' ? "bg-amber-500" : "bg-red-500"
-                                  )} />
-                                  <Label className="text-xs uppercase tracking-widest font-black text-muted-foreground">{diff}</Label>
+                        <div className="space-y-8 pl-4 border-l-2 border-primary/20 mt-2">
+                          {Object.entries(domain.counts.types || { 'MCQ': domain.counts }).map(([qType, typeCounts]) => {
+                            if (!typeCounts || (typeCounts as any).total === 0) return null;
+                            const typeConfig = domainConfig[qType] || { easy: 0, medium: 0, hard: 0 };
+                            return (
+                              <div key={qType} className="space-y-4">
+                                <div className="flex items-center gap-2 border-b pb-2">
+                                  <Badge variant="outline" className={cn("text-[10px] uppercase tracking-wider font-black", qType === 'SUBJECTIVE' ? 'bg-purple-100/50 text-purple-700 border-purple-200' : 'bg-blue-100/50 text-blue-700 border-blue-200')}>
+                                    {qType === 'SUBJECTIVE' ? 'Subjective format' : 'Multiple choice'}
+                                  </Badge>
                                 </div>
-                                <div className="text-xs font-bold tabular-nums">
-                                  <span className={domainConfig[diff] > (available as any)[diff] ? 'text-destructive' : 'text-primary'}>
-                                    {domainConfig[diff]}
-                                  </span>
-                                  <span className="text-muted-foreground/60 font-medium ml-1">available {(available as any)[diff]}</span>
+                                <div className="grid gap-4 pl-2">
+                                  {(['easy', 'medium', 'hard'] as const).map((diff) => (
+                                    <div key={diff} className="space-y-3 px-2">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <div className={cn(
+                                            "w-1.5 h-1.5 rounded-full",
+                                            diff === 'easy' ? "bg-green-500" : diff === 'medium' ? "bg-amber-500" : "bg-red-500"
+                                          )} />
+                                          <Label className="text-xs uppercase tracking-widest font-black text-muted-foreground">{diff}</Label>
+                                        </div>
+                                        <div className="text-xs font-bold tabular-nums">
+                                          <span className={typeConfig[diff] > (typeCounts as any)[diff] ? 'text-destructive' : 'text-primary'}>
+                                            {typeConfig[diff]}
+                                          </span>
+                                          <span className="text-muted-foreground/60 font-medium ml-1">available {(typeCounts as any)[diff]}</span>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-1.5 bg-background border rounded-xl p-1 shadow-sm">
+                                          <Button 
+                                            type="button"
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive"
+                                            onClick={() => setQuestionsConfig(prev => {
+                                              const current = ((prev[domain.id] || {})[qType] || {})[diff] || 0;
+                                              return {
+                                                ...prev,
+                                                [domain.id]: { 
+                                                  ...(prev[domain.id] || {}), 
+                                                  [qType]: { ...((prev[domain.id] || {})[qType] || {}), [diff]: Math.max(0, current - 1) }
+                                                }
+                                              };
+                                            })}
+                                            disabled={(((questionsConfig[domain.id] || {})[qType] || {})[diff] || 0) <= 0}
+                                          >
+                                            <Minus className="h-3.5 w-3.5" />
+                                          </Button>
+                                          <Input 
+                                            type="number"
+                                            className="w-14 h-8 text-center font-black border-none bg-transparent focus-visible:ring-0 p-0"
+                                            min={0}
+                                            max={(typeCounts as any)[diff] || 0}
+                                            value={((questionsConfig[domain.id] || {})[qType] || {})[diff] || 0}
+                                            onChange={(e) => {
+                                              const val = parseInt(e.target.value) || 0;
+                                              const max = (typeCounts as any)[diff] || 0;
+                                              setQuestionsConfig(prev => ({
+                                                ...prev,
+                                                [domain.id]: { 
+                                                  ...(prev[domain.id] || {}), 
+                                                  [qType]: { ...((prev[domain.id] || {})[qType] || {}), [diff]: Math.max(0, Math.min(max, val)) }
+                                                }
+                                              }));
+                                            }}
+                                          />
+                                          <Button 
+                                            type="button"
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                                            onClick={() => setQuestionsConfig(prev => {
+                                              const current = ((prev[domain.id] || {})[qType] || {})[diff] || 0;
+                                              const max = (typeCounts as any)[diff] || 0;
+                                              return {
+                                                ...prev,
+                                                [domain.id]: { 
+                                                  ...(prev[domain.id] || {}), 
+                                                  [qType]: { ...((prev[domain.id] || {})[qType] || {}), [diff]: Math.min(max, current + 1) }
+                                                }
+                                              };
+                                            })}
+                                            disabled={(((questionsConfig[domain.id] || {})[qType] || {})[diff] || 0) >= ((typeCounts as any)[diff] || 0)}
+                                          >
+                                            <Plus className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
+                                        <span className="text-[10px] uppercase font-bold text-muted-foreground/60 italic">
+                                          Max: {(typeCounts as any)[diff] || 0}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
-                              <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-1.5 bg-background border rounded-xl p-1 shadow-sm">
-                                  <Button 
-                                    type="button"
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive"
-                                    onClick={() => setQuestionsConfig(prev => {
-                                      const current = (prev[domain.id] || {})[diff] || 0;
-                                      return {
-                                        ...prev,
-                                        [domain.id]: { ...(prev[domain.id] || {}), [diff]: Math.max(0, current - 1) }
-                                      };
-                                    })}
-                                    disabled={((questionsConfig[domain.id] || {})[diff] || 0) <= 0}
-                                  >
-                                    <Minus className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Input 
-                                    type="number"
-                                    className="w-14 h-8 text-center font-black border-none bg-transparent focus-visible:ring-0 p-0"
-                                    min={0}
-                                    max={(available as any)[diff] || 0}
-                                    value={(questionsConfig[domain.id] || {})[diff] || 0}
-                                    onChange={(e) => {
-                                      const val = parseInt(e.target.value) || 0;
-                                      const max = (available as any)[diff] || 0;
-                                      setQuestionsConfig(prev => ({
-                                        ...prev,
-                                        [domain.id]: { ...(prev[domain.id] || {}), [diff]: Math.max(0, Math.min(max, val)) }
-                                      }));
-                                    }}
-                                  />
-                                  <Button 
-                                    type="button"
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
-                                    onClick={() => setQuestionsConfig(prev => {
-                                      const current = (prev[domain.id] || {})[diff] || 0;
-                                      const max = (available as any)[diff] || 0;
-                                      return {
-                                        ...prev,
-                                        [domain.id]: { ...(prev[domain.id] || {}), [diff]: Math.min(max, current + 1) }
-                                      };
-                                    })}
-                                    disabled={((questionsConfig[domain.id] || {})[diff] || 0) >= ((available as any)[diff] || 0)}
-                                  >
-                                    <Plus className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                                <span className="text-[10px] uppercase font-bold text-muted-foreground/60 italic">
-                                  Max: {(available as any)[diff] || 0}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </AccordionContent>
                     </AccordionItem>
@@ -721,162 +683,7 @@ export default function CreateAssessment() {
                   <span className="text-sm font-medium text-muted-foreground">questions</span>
                 </div>
               </div>
-              </>
-              ) : (
-                <div className="space-y-4 animate-in fade-in duration-300">
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        placeholder="Search questions..." 
-                        value={manualSearch} 
-                        onChange={(e) => setManualSearch(e.target.value)} 
-                        className="pl-9 h-10 bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary/20" 
-                      />
-                    </div>
-                    <Select value={manualDomainFilter} onValueChange={setManualDomainFilter}>
-                      <SelectTrigger className="w-[160px] h-10 bg-muted/50 border-none font-semibold text-xs">
-                        <SelectValue placeholder="All Domains" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all" className="font-semibold text-xs">All Domains</SelectItem>
-                        {domains.map(d => (
-                          <SelectItem key={d.id} value={d.id} className="font-semibold text-xs">{d.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={manualDifficultyFilter} onValueChange={setManualDifficultyFilter}>
-                      <SelectTrigger className="w-[140px] h-10 bg-muted/50 border-none font-semibold text-xs">
-                        <SelectValue placeholder="Difficulty" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all" className="font-semibold text-xs">All Difficulties</SelectItem>
-                        <SelectItem value="easy" className="font-semibold text-xs text-emerald-600">Easy</SelectItem>
-                        <SelectItem value="medium" className="font-semibold text-xs text-amber-600">Medium</SelectItem>
-                        <SelectItem value="hard" className="font-semibold text-xs text-rose-600">Hard</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={manualTypeFilter} onValueChange={setManualTypeFilter}>
-                      <SelectTrigger className="w-[140px] h-10 bg-muted/50 border-none font-semibold text-xs">
-                        <SelectValue placeholder="Question Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all" className="font-semibold text-xs">All Types</SelectItem>
-                        <SelectItem value="MULTIPLE_CHOICE" className="font-semibold text-xs">Multiple Choice</SelectItem>
-                        <SelectItem value="SUBJECTIVE" className="font-semibold text-xs">Subjective</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="border rounded-xl overflow-hidden max-h-[500px] overflow-y-auto">
-                    <Table>
-                      <TableHeader className="bg-slate-50/50 dark:bg-slate-900/50 sticky top-0 z-10 backdrop-blur-sm">
-                        <TableRow>
-                          <TableHead className="w-12 px-4">
-                            <Checkbox 
-                              checked={manualQuestions.length > 0 && manualQuestions.every(q => selectedManualIds.has(q.id))}
-                              onCheckedChange={(checked) => {
-                                const next = new Set(selectedManualIds);
-                                if (checked) {
-                                  manualQuestions.forEach(q => next.add(q.id));
-                                } else {
-                                  manualQuestions.forEach(q => next.delete(q.id));
-                                }
-                                setSelectedManualIds(next);
-                              }}
-                            />
-                          </TableHead>
-                          <TableHead className="text-xs font-bold uppercase tracking-wider">Question Text</TableHead>
-                          <TableHead className="text-xs font-bold uppercase tracking-wider">Domain</TableHead>
-                          <TableHead className="text-xs font-bold uppercase tracking-wider">Type / Difficulty</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {isFetchingManual ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="h-40 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></TableCell>
-                          </TableRow>
-                        ) : manualQuestions.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="h-40 text-center text-muted-foreground flex-col gap-2">
-                              <FileQuestion className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                              <p className="font-semibold">No questions found</p>
-                              <p className="text-xs">Try adjusting your filters</p>
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          manualQuestions.map((q) => (
-                            <TableRow key={q.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
-                              <TableCell className="px-4">
-                                <Checkbox 
-                                  checked={selectedManualIds.has(q.id)}
-                                  onCheckedChange={(checked) => {
-                                    const next = new Set(selectedManualIds);
-                                    if (checked) next.add(q.id);
-                                    else next.delete(q.id);
-                                    setSelectedManualIds(next);
-                                  }}
-                                />
-                          </TableCell>
-                              <TableCell className="font-medium text-sm max-w-[300px] truncate">{q.questionText || q.question_text}</TableCell>
-                              <TableCell className="text-xs">{q.domainName || q.domain}</TableCell>
-                              <TableCell className="text-xs">
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className={cn("text-[9px] uppercase tracking-wider", q.difficulty === 'easy' ? 'text-emerald-600' : q.difficulty === 'medium' ? 'text-amber-600' : 'text-rose-600')}>
-                                    {q.difficulty}
-                                  </Badge>
-                                  {(q.questionType === 'SUBJECTIVE' || q.question_type === 'SUBJECTIVE') ? (
-                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-[9px] uppercase">Subjective</Badge>
-                                  ) : (
-                                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-[9px] uppercase">MCQ</Badge>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  <div className="flex items-center justify-between mt-4 px-2">
-                    <p className="text-sm text-muted-foreground">
-                      Showing {manualQuestions.length} of {manualTotalItems} questions
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setManualPage(p => Math.max(1, p - 1))}
-                        disabled={manualPage === 1}
-                      >
-                        Previous
-                      </Button>
-                      <span className="text-sm font-medium px-2">
-                        Page {manualPage} of {manualTotalPages}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setManualPage(p => Math.min(manualTotalPages, p + 1))}
-                        disabled={manualPage === manualTotalPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-2 flex items-center justify-between px-2">
-                    <span className="font-medium text-muted-foreground">Manually Selected Questions</span>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black text-primary">{selectedManualIds.size}</span>
-                      <span className="text-sm font-medium text-muted-foreground">questions</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
             </CardContent>
           </Card>
 
