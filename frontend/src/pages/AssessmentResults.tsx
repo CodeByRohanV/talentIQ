@@ -824,7 +824,7 @@ export default function AssessmentResults() {
               downloadAllPDFs();
             }} disabled={bulkDownloading || candidates.filter(c => c.status === 'completed').length === 0}>
               {bulkDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-              {bulkDownloading ? 'Generating ZIP...' : 'Download ZIP Archive'}
+              {bulkDownloading ? 'Generating ZIP...' : 'Download All Reports'}
             </Button>
             <Button variant="outline" onClick={() => {
               if (candidates.some(c => c.status === 'completed' && c.passed === null)) {
