@@ -708,7 +708,7 @@ export const uploadPhotoId = async (req, res, next) => {
         }
 
         const envPrefix = process.env.APP_ENV || (process.env.NODE_ENV === 'production' ? 'production' : 'test');
-        const s3Key = `${envPrefix}/proctoring-evidence/candidates/candidate-${candidate.id}/photo-id-${Date.now()}.jpg`;
+        const s3Key = `${envPrefix}/candidates/candidate-${candidate.id}/photo-id-${Date.now()}.jpg`;
         let s3Url;
 
         // Graceful fallback for local development when AWS credentials are missing
