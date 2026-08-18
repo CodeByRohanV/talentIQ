@@ -3,6 +3,7 @@ import * as Assessment from '../models/Assessment.js';
 import * as Response from '../models/Response.js';
 import { query } from '../config/database.js';
 import { processAllExpiredTests } from './testController.js';
+import { generateBulkReport } from '../services/pdfService.js';
 
 export const getResults = async (req, res, next) => {
     try {
@@ -314,6 +315,65 @@ export const gradeResponse = async (req, res, next) => {
 
         res.json({ success: true, data: updatedResponse });
     } catch (error) {
+        next(error);
+    }
+};
+
+export const exportBulkPDF = async (req, res, next) => {
+    try {
+        const { assessmentId } = req.params;
+        
+        // 1. Fetch assessment details
+        const assessmentQuery = await query('SELECT title FROM assessments WHERE id = $1', [assessmentId]);
+        if (assessmentQuery.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Assessment not found' });
+        }
+        const assessmentTitle = assessmentQuery.rows[0].title;
+
+        // 2. Fetch completed candidates
+        const results = await Result.findResultsByAssessmentIds([assessmentId]);
+        const completedCandidates = results.filter(r => r.status === 'completed' || r.completed_at !== null);
+
+        if (completedCandidates.length === 0) {
+            return res.status(400).json({ success: false, message: 'No completed candidates found for export' });
+        }
+
+        // 3. Fetch detailed responses
+        const responses = await Result.findAllDetailedResponsesByAssessmentId(assessmentId);
+        
+        // Group responses
+        const grouped = {};
+        responses.forEach(r => {
+            if (!grouped[r.candidate_id]) grouped[r.candidate_id] = [];
+            grouped[r.candidate_id].push({
+                candidateId: r.candidate_id,
+                questionId: r.question_id,
+                responseId: r.response_id,
+                questionType: r.question_type || 'MULTIPLE_CHOICE',
+                questionText: r.question_text,
+                options: r.options,
+                correctAnswer: r.correct_answer,
+                selectedAnswer: r.selected_answer,
+                textAnswer: r.text_answer,
+                manualScore: r.manual_score,
+                graderFeedback: r.grader_feedback,
+                domain: r.domain,
+                difficulty: r.difficulty,
+                max_score: r.max_score || 1
+            });
+        });
+
+        // 4. Generate PDF
+        const pdfBuffer = await generateBulkReport(assessmentTitle, completedCandidates, grouped);
+
+        // 5. Send PDF
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${assessmentTitle.replace(/\s+/g, '_')}_All_Reports.pdf"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        
+        return res.send(pdfBuffer);
+    } catch (error) {
+        console.error('PDF Generation Error:', error);
         next(error);
     }
 };

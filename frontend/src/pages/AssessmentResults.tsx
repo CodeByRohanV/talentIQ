@@ -533,8 +533,6 @@ export default function AssessmentResults() {
 
   const [bulkDownloading, setBulkDownloading] = useState(false);
   const [showUngradedGuard, setShowUngradedGuard] = useState(false);
-  const [bulkDetailedResponses, setBulkDetailedResponses] = useState<Record<string, DetailedResponse[]>>({});
-  const bulkReportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
@@ -718,7 +716,7 @@ export default function AssessmentResults() {
   };
 
   const downloadAllPDFs = async () => {
-    if (!id || !bulkReportRef.current) return;
+    if (!id) return;
     const completedCandidates = candidates.filter(c => c.status === 'completed');
     if (completedCandidates.length === 0) {
       toast({ title: 'No Candidates', description: 'There are no completed candidates to generate reports for.', variant: 'destructive' });
@@ -727,35 +725,21 @@ export default function AssessmentResults() {
 
     try {
       setBulkDownloading(true);
-      const res = await resultsAPI.getDetailedByAssessment(id);
-      setBulkDetailedResponses(res.data || {});
-
-      // Wait a moment for React to render the hidden bulk report div
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const element = bulkReportRef.current;
-      const fileName = `${assessmentTitle.replace(/\s+/g, '_')}_All_Reports.pdf`;
-
-      const options = {
-        margin: 10,
-        filename: fileName,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          letterRendering: true
-        },
-        jsPDF: { unit: 'mm', format: 'a4' as const, orientation: 'portrait' as const },
-        pagebreak: { mode: ['css', 'legacy'] }
-      };
-
-      const worker = html2pdf().set(options).from(element);
-      await worker.save();
+      const res = await resultsAPI.downloadBulkPDF(id);
+      
+      const blob = new Blob([res as any], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${assessmentTitle.replace(/\s+/g, '_')}_All_Reports.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
       toast({
         title: 'Bulk Download Complete',
-        description: 'All candidate reports have been merged and downloaded.',
+        description: 'All candidate reports have been successfully generated.',
       });
     } catch (error) {
       console.error('Bulk PDF generation error:', error);
@@ -1147,24 +1131,6 @@ export default function AssessmentResults() {
         </DialogContent>
       </Dialog>
 
-      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', width: '1000px', backgroundColor: 'white' }}>
-        <div ref={bulkReportRef}>
-          {candidates.filter(c => c.status === 'completed').map((c, idx) => (
-            <div key={c.id} style={{ pageBreakAfter: 'always', paddingBottom: '20px', paddingTop: '20px' }}>
-              <div style={{ marginBottom: '20px', paddingBottom: '10px', borderBottom: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>Candidate Report: {c.name}</h2>
-              </div>
-              <CandidateReportView
-                candidate={c}
-                detailedResponses={bulkDetailedResponses[c.id] || []}
-                loadingDetailed={false}
-                getDomainName={getDomainName}
-                assessmentTitle={assessmentTitle}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
 
       <Dialog open={showUngradedGuard} onOpenChange={setShowUngradedGuard}>
         <DialogContent className="max-w-md">

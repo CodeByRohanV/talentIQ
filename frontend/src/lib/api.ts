@@ -284,6 +284,9 @@ export const resultsAPI = {
     getDetailedByAssessment: (assessmentId: string) =>
         api.get(`/results/assessment/${assessmentId}/detailed`),
 
+    downloadBulkPDF: (assessmentId: string) =>
+        api.get(`/results/assessment/${assessmentId}/bulk-pdf`, { responseType: 'blob' }),
+
     gradeResponse: (responseId: string | null, manualScore: number, graderFeedback: string, candidateId?: string, questionId?: string) =>
         api.put(`/results/responses/${responseId}/grade`, { manualScore, graderFeedback, candidateId, questionId }),
 };
