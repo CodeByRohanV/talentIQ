@@ -28,8 +28,9 @@ COPY . .
 # Expose backend API port
 EXPOSE 5000
 
-# Set production environment
+# Set production environment (optimizes Express) but label as test environment for S3
 ENV NODE_ENV=production
+ENV APP_ENV=test
 
 # Command to start Express server
 CMD ["npm", "start"]
