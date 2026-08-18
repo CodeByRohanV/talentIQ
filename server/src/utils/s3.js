@@ -17,7 +17,7 @@ const s3Client = new S3Client({
 export const uploadToS3 = async (base64Data, filename, contentType = 'image/png', folder = 'proctoring-evidence') => {
     const bucketName = process.env.S3_BUCKET_NAME || 'skillz-proctoring';
     const buffer = Buffer.from(base64Data, 'base64');
-    const envPrefix = process.env.NODE_ENV || 'test';
+    const envPrefix = process.env.APP_ENV || (process.env.NODE_ENV === 'production' ? 'production' : 'test');
     
     // Create the command, strictly enforcing the environment and folder structure
     const command = new PutObjectCommand({

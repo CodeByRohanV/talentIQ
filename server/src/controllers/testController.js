@@ -707,7 +707,7 @@ export const uploadPhotoId = async (req, res, next) => {
             return res.status(400).json({ success: false, message: 'No active test attempt found' });
         }
 
-        const envPrefix = process.env.NODE_ENV || 'test';
+        const envPrefix = process.env.APP_ENV || (process.env.NODE_ENV === 'production' ? 'production' : 'test');
         const s3Key = `${envPrefix}/proctoring-evidence/attempt-${attempt.id}/photo-id-${Date.now()}.jpg`;
         let s3Url;
 
