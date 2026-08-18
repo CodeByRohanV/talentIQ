@@ -1,7 +1,21 @@
 import puppeteer from 'puppeteer';
 import { ZipArchive } from 'archiver';
+import axios from 'axios';
 
-const buildSingleCandidateHtml = (assessmentTitle, candidate, responses) => {
+const fetchImageAsBase64 = async (url) => {
+    if (!url) return null;
+    try {
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        const base64 = Buffer.from(response.data, 'binary').toString('base64');
+        const contentType = response.headers['content-type'] || 'image/jpeg';
+        return `data:${contentType};base64,${base64}`;
+    } catch (error) {
+        console.error(`Failed to fetch image for PDF: ${url}`, error.message);
+        return null;
+    }
+};
+
+const buildSingleCandidateHtml = (assessmentTitle, candidate, responses, photoBase64) => {
     const isPass = candidate.passed === true;
     const isFail = candidate.passed === false;
     const isPending = candidate.passed === null;
@@ -159,6 +173,11 @@ const buildSingleCandidateHtml = (assessmentTitle, candidate, responses) => {
                     ${scoreText}
                 </div>
             </div>
+            ${photoBase64 ? `
+            <div class="info-block" style="text-align: right; flex: 0.5;">
+                <img src="${photoBase64}" alt="Candidate Verification" style="max-height: 80px; border-radius: 8px; border: 1px solid #e2e8f0;"/>
+            </div>
+            ` : ''}
         </div>
 
         <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Detailed Responses</h3>
@@ -249,7 +268,10 @@ export const streamZipBulkReport = async (assessmentTitle, candidates, groupedRe
             const cid = candidate.candidate_id || candidate.candidateId || candidate.id;
             const responses = groupedResponses[cid] || [];
             
-            const htmlContent = buildSingleCandidateHtml(assessmentTitle, candidate, responses);
+            // Fetch photo as Base64 before building HTML to ensure it renders in PDF natively
+            const photoBase64 = await fetchImageAsBase64(candidate.photo_id_url);
+            
+            const htmlContent = buildSingleCandidateHtml(assessmentTitle, candidate, responses, photoBase64);
             
             await page.setContent(htmlContent, { waitUntil: 'load' });
             

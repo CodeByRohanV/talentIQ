@@ -707,7 +707,8 @@ export const uploadPhotoId = async (req, res, next) => {
             return res.status(400).json({ success: false, message: 'No active test attempt found' });
         }
 
-        const s3Key = `evidence/${attempt.id}/photo-id-${Date.now()}.jpg`;
+        const envPrefix = process.env.NODE_ENV || 'test';
+        const s3Key = `${envPrefix}/proctoring-evidence/attempt-${attempt.id}/photo-id-${Date.now()}.jpg`;
         let s3Url;
 
         // Graceful fallback for local development when AWS credentials are missing
