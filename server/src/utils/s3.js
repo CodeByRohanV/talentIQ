@@ -11,17 +11,18 @@ const s3Client = new S3Client({
  * @param {string} base64Data - Base64 string of the file (without data uri prefix)
  * @param {string} filename - Desired filename
  * @param {string} contentType - Mime type of the file
+ * @param {string} folder - The subfolder inside the environment (e.g., 'proctoring-evidence' or 'candidates')
  * @returns {Promise<string>} - The S3 URL of the uploaded file
  */
-export const uploadToS3 = async (base64Data, filename, contentType = 'image/png') => {
+export const uploadToS3 = async (base64Data, filename, contentType = 'image/png', folder = 'proctoring-evidence') => {
     const bucketName = process.env.S3_BUCKET_NAME || 'skillz-proctoring';
     const buffer = Buffer.from(base64Data, 'base64');
     const envPrefix = process.env.NODE_ENV || 'test';
     
-    // Create the command
+    // Create the command, strictly enforcing the environment and folder structure
     const command = new PutObjectCommand({
         Bucket: bucketName,
-        Key: `${envPrefix}/proctoring-evidence/${filename}`,
+        Key: `${envPrefix}/${folder}/${filename}`,
         Body: buffer,
         ContentType: contentType,
         // ACL is generally disabled in modern buckets, so we don't set it unless needed
@@ -32,7 +33,7 @@ export const uploadToS3 = async (base64Data, filename, contentType = 'image/png'
         
         // Return the constructed S3 URL
         const region = process.env.AWS_REGION || 'ap-south-2';
-        return `https://${bucketName}.s3.${region}.amazonaws.com/${envPrefix}/proctoring-evidence/${filename}`;
+        return `https://${bucketName}.s3.${region}.amazonaws.com/${envPrefix}/${folder}/${filename}`;
     } catch (error) {
         console.error('S3 Upload Error:', error);
         throw error;
