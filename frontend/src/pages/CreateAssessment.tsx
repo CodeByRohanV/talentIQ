@@ -569,19 +569,19 @@ export default function CreateAssessment() {
                           </div>
                         </div>
                       </AccordionTrigger>
-                      <AccordionContent className="pb-6 pt-2">
-                        <div className="space-y-8 pl-4 border-l-2 border-primary/20 mt-2">
+                      <AccordionContent className="pb-6 pt-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pl-4 border-l-2 border-primary/20 mt-2">
                           {Object.entries(domain.counts.types || { 'MCQ': domain.counts }).map(([qType, typeCounts]) => {
                             if (!typeCounts || (typeCounts as any).total === 0) return null;
                             const typeConfig = domainConfig[qType] || { easy: 0, medium: 0, hard: 0 };
                             return (
-                              <div key={qType} className="space-y-4">
-                                <div className="flex items-center gap-2 border-b pb-2">
-                                  <Badge variant="outline" className={cn("text-[10px] uppercase tracking-wider font-black", qType === 'SUBJECTIVE' ? 'bg-purple-100/50 text-purple-700 border-purple-200' : 'bg-blue-100/50 text-blue-700 border-blue-200')}>
+                              <div key={qType} className="space-y-5 bg-background/50 border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-center gap-2 border-b border-border/50 pb-3">
+                                  <Badge variant="outline" className={cn("text-[10px] uppercase tracking-wider font-black px-2.5 py-1 rounded-lg", qType === 'SUBJECTIVE' ? 'bg-purple-100/50 text-purple-700 border-purple-200' : 'bg-blue-100/50 text-blue-700 border-blue-200')}>
                                     {qType === 'SUBJECTIVE' ? 'Subjective format' : 'Multiple choice'}
                                   </Badge>
                                 </div>
-                                <div className="grid gap-4 pl-2">
+                                <div className="grid gap-5">
                                   {(['easy', 'medium', 'hard'] as const).map((diff) => (
                                     <div key={diff} className="space-y-3 px-2">
                                       <div className="flex items-center justify-between">
@@ -659,9 +659,7 @@ export default function CreateAssessment() {
                                             <Plus className="h-3.5 w-3.5" />
                                           </Button>
                                         </div>
-                                        <span className="text-[10px] uppercase font-bold text-muted-foreground/60 italic">
-                                          Max: {(typeCounts as any)[diff] || 0}
-                                        </span>
+
                                       </div>
                                     </div>
                                   ))}

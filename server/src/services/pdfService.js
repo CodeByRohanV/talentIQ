@@ -30,6 +30,24 @@ const buildSingleCandidateHtml = (assessmentTitle, candidate, responses, photoBa
     const cScoreRaw = candidate.overall_score ?? candidate.overallScore ?? null;
     const scoreDisplay = cScoreRaw !== null ? `${Number(cScoreRaw).toFixed(0)}%` : 'N/A';
 
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const d = new Date(dateString);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
+    const formatTime = (dateString) => {
+        if (!dateString) return 'N/A';
+        const d = new Date(dateString);
+        return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    };
+
+    const methodDisplay = candidate.submission_mode === 'auto' ? 'Auto Submission' : (candidate.submission_mode ? 'Manual Submission' : 'Manual Submission');
+    const ipDisplay = candidate.ip_address || 'N/A';
+    const dateDisplay = formatDate(candidate.started_at);
+    const startDisplay = formatTime(candidate.started_at);
+    const endDisplay = formatTime(candidate.completed_at);
+
     let htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
@@ -54,41 +72,82 @@ const buildSingleCandidateHtml = (assessmentTitle, candidate, responses, photoBa
                 color: #0f172a;
                 font-size: 24px;
             }
-            .candidate-info {
+            .candidate-grid {
+                background: #f8fafc;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 30px;
+            }
+            .grid-row {
                 display: flex;
                 justify-content: space-between;
-                background: #f8fafc;
-                padding: 20px;
-                border-radius: 8px;
-                margin-bottom: 30px;
+                margin-bottom: 20px;
+            }
+            .grid-row:last-child {
+                margin-bottom: 0;
             }
             .info-block {
                 flex: 1;
+                padding-right: 10px;
+            }
+            .info-block.wide {
+                flex: 1.5;
+            }
+            .info-block.narrow {
+                flex: 0.8;
             }
             .info-block strong {
                 display: block;
                 color: #64748b;
-                font-size: 12px;
+                font-size: 11px;
                 text-transform: uppercase;
-                margin-bottom: 4px;
+                margin-bottom: 6px;
+                letter-spacing: 0.5px;
             }
             .info-block span {
-                font-size: 16px;
+                font-size: 15px;
                 font-weight: 600;
                 color: #0f172a;
                 word-break: break-word;
             }
-            .score-badge {
-                font-size: 24px;
+            .status-badge {
+                display: inline-block;
+                padding: 6px 16px;
+                border-radius: 9999px;
+                font-size: 12px;
                 font-weight: bold;
                 color: #fff;
-                padding: 10px 20px;
-                border-radius: 8px;
                 text-align: center;
             }
-            .pass { background: #22c55e; }
+            .pass { background: #ef4444; } /* Matches screenshot 'FAIL' being red, if we want strict color match */
             .fail { background: #ef4444; }
             .pending { background: #eab308; }
+            
+            /* Custom explicit pass color just in case */
+            .status-pass { background: #22c55e; }
+            .status-fail { background: #ef4444; }
+            .status-pending { background: #eab308; }
+
+            .photo-section {
+                margin-top: 20px;
+                padding-top: 20px;
+                border-top: 1px solid #e2e8f0;
+                text-align: center;
+            }
+            .photo-section strong {
+                display: block;
+                color: #64748b;
+                font-size: 11px;
+                text-transform: uppercase;
+                margin-bottom: 12px;
+                letter-spacing: 0.5px;
+            }
+            .photo-section img {
+                max-width: 300px;
+                max-height: 200px;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            }
             
             .question-item {
                 border: 1px solid #e2e8f0;
@@ -152,32 +211,58 @@ const buildSingleCandidateHtml = (assessmentTitle, candidate, responses, photoBa
     </head>
     <body>
         <div class="header">
-            <h1>${assessmentTitle} — Candidate Report</h1>
+            <h1>Candidate Report: ${cName}</h1>
+            <p style="color: #64748b; margin-top: 5px;">Assessment: ${assessmentTitle} | Score: ${scoreDisplay}</p>
         </div>
         
-        <div class="candidate-info">
-            <div class="info-block">
-                <strong>Candidate Name</strong>
-                <span>${cName}</span>
-            </div>
-            <div class="info-block">
-                <strong>Email Address</strong>
-                <span>${cEmail}</span>
-            </div>
-            <div class="info-block">
-                <strong>Overall Score</strong>
-                <span>${scoreDisplay}</span>
-            </div>
-            <div class="info-block">
-                <div class="score-badge ${scoreClass}">
-                    ${scoreText}
+        <div class="candidate-grid">
+            <div class="grid-row">
+                <div class="info-block wide">
+                    <strong>Email Address</strong>
+                    <span>${cEmail}</span>
+                </div>
+                <div class="info-block">
+                    <strong>Method</strong>
+                    <span>${methodDisplay}</span>
+                </div>
+                <div class="info-block">
+                    <strong>IP Address</strong>
+                    <span>${ipDisplay}</span>
+                </div>
+                <div class="info-block narrow">
+                    <strong>Status</strong>
+                    <br/>
+                    <div class="status-badge status-${scoreClass}">
+                        ${scoreText}
+                    </div>
                 </div>
             </div>
-            ${photoBase64 ? `
-            <div class="info-block" style="text-align: right; flex: 0.5;">
-                <img src="${photoBase64}" alt="Candidate Verification" style="max-height: 80px; border-radius: 8px; border: 1px solid #e2e8f0;"/>
+            
+            <div class="grid-row">
+                <div class="info-block">
+                    <strong>Test Date</strong>
+                    <span>${dateDisplay}</span>
+                </div>
+                <div class="info-block">
+                    <strong>Start Time</strong>
+                    <span>${startDisplay}</span>
+                </div>
+                <div class="info-block">
+                    <strong>End Time</strong>
+                    <span>${endDisplay}</span>
+                </div>
+                <div class="info-block">
+                    <!-- Empty block for alignment -->
+                </div>
             </div>
-            ` : ''}
+
+            <div class="photo-section">
+                <strong>Identity Verification Photo</strong>
+                ${photoBase64 ? 
+                    `<img src="${photoBase64}" alt="Candidate Verification" />` : 
+                    `<div style="width: 240px; height: 160px; background: #f1f5f9; border: 1px dashed #cbd5e1; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: #64748b; font-size: 13px; font-weight: 500; margin: 0 auto;">No photo provided</div>`
+                }
+            </div>
         </div>
 
         <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Detailed Responses</h3>

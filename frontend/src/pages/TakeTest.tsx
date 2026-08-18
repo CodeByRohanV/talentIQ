@@ -866,7 +866,7 @@ export default function TakeTest() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Main Question Area */}
           <div className="lg:col-span-8 xl:col-span-9 space-y-6">
-            <Card className={cn("transition-all duration-200 border-2", (allVisited && !currentResponse?.selectedAnswer) ? "border-destructive/30 shadow-destructive/5" : "border-transparent")}>
+            <Card className={cn("transition-all duration-200 border-2", (allVisited && !(currentQuestion.question_type === 'SUBJECTIVE' ? !!currentResponse?.textAnswer?.trim() : currentResponse?.selectedAnswer != null)) ? "border-destructive/30 shadow-destructive/5" : "border-transparent")}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1 space-y-3">
@@ -953,7 +953,7 @@ export default function TakeTest() {
                   <div className="grid grid-cols-5 gap-2">
                     {questions.map((q, idx) => {
                       const resp = responses.get(q.id);
-                      const isAnswered = resp?.selectedAnswer !== null && resp?.selectedAnswer !== undefined;
+                      const isAnswered = q.question_type === 'SUBJECTIVE' ? !!resp?.textAnswer?.trim() : resp?.selectedAnswer != null;
                       const isFlagged = resp?.isFlagged;
                       const isCurrent = idx === currentIndex;
 
