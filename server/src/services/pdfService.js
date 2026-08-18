@@ -268,7 +268,8 @@ export const streamZipBulkReport = async (assessmentTitle, candidates, groupedRe
             const cName = candidate.candidate_name || candidate.candidateName || candidate.name || 'Unknown';
             // Clean name for safe filesystem usage
             const cleanName = cName.replace(/[^a-zA-Z0-9]/g, '_');
-            const fileName = `${cleanName}_${cid}.pdf`;
+            const shortId = String(cid).split('-')[0].substring(0, 8); // Take first 8 chars of UUID
+            const fileName = `${cleanName}_${shortId}.pdf`;
 
             archive.append(Buffer.from(pdfBuffer), { name: fileName });
         } catch (error) {
