@@ -727,11 +727,11 @@ export default function AssessmentResults() {
       setBulkDownloading(true);
       const res = await resultsAPI.downloadBulkPDF(id);
       
-      const blob = new Blob([res as any], { type: 'application/pdf' });
+      const blob = new Blob([res as any], { type: 'application/zip' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${assessmentTitle.replace(/\s+/g, '_')}_All_Reports.pdf`;
+      link.download = `${assessmentTitle.replace(/\s+/g, '_')}_All_Reports.zip`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -824,7 +824,7 @@ export default function AssessmentResults() {
               downloadAllPDFs();
             }} disabled={bulkDownloading || candidates.filter(c => c.status === 'completed').length === 0}>
               {bulkDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-              {bulkDownloading ? 'Generating PDFs...' : 'Download All Reports'}
+              {bulkDownloading ? 'Generating ZIP...' : 'Download ZIP Archive'}
             </Button>
             <Button variant="outline" onClick={() => {
               if (candidates.some(c => c.status === 'completed' && c.passed === null)) {

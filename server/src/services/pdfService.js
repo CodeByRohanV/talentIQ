@@ -1,6 +1,21 @@
 import puppeteer from 'puppeteer';
+import { ZipArchive } from 'archiver';
 
-export const generateBulkReport = async (assessmentTitle, candidates, groupedResponses) => {
+const buildSingleCandidateHtml = (assessmentTitle, candidate, responses) => {
+    const isPass = candidate.passed === true;
+    const isFail = candidate.passed === false;
+    const isPending = candidate.passed === null;
+    
+    let scoreClass = 'pending';
+    let scoreText = 'Pending Grading';
+    if (isPass) { scoreClass = 'pass'; scoreText = 'PASS'; }
+    if (isFail) { scoreClass = 'fail'; scoreText = 'FAIL'; }
+
+    const cName = candidate.candidate_name || candidate.candidateName || candidate.name || 'Unknown';
+    const cEmail = candidate.candidate_email || candidate.candidateEmail || candidate.email || 'N/A';
+    const cScoreRaw = candidate.overall_score ?? candidate.overallScore ?? null;
+    const scoreDisplay = cScoreRaw !== null ? `${Number(cScoreRaw).toFixed(0)}%` : 'N/A';
+
     let htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
@@ -13,9 +28,6 @@ export const generateBulkReport = async (assessmentTitle, candidates, groupedRes
                 padding: 0;
                 color: #333;
                 background: #fff;
-            }
-            .page-break {
-                page-break-after: always;
             }
             .header {
                 text-align: center;
@@ -125,132 +137,148 @@ export const generateBulkReport = async (assessmentTitle, candidates, groupedRes
         </style>
     </head>
     <body>
+        <div class="header">
+            <h1>${assessmentTitle} — Candidate Report</h1>
+        </div>
+        
+        <div class="candidate-info">
+            <div class="info-block">
+                <strong>Candidate Name</strong>
+                <span>${cName}</span>
+            </div>
+            <div class="info-block">
+                <strong>Email Address</strong>
+                <span>${cEmail}</span>
+            </div>
+            <div class="info-block">
+                <strong>Overall Score</strong>
+                <span>${scoreDisplay}</span>
+            </div>
+            <div class="info-block">
+                <div class="score-badge ${scoreClass}">
+                    ${scoreText}
+                </div>
+            </div>
+        </div>
+
+        <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Detailed Responses</h3>
     `;
 
-    candidates.forEach((candidate, index) => {
-        const isPass = candidate.passed === true;
-        const isFail = candidate.passed === false;
-        const isPending = candidate.passed === null;
-        
-        let scoreClass = 'pending';
-        let scoreText = 'Pending Grading';
-        if (isPass) { scoreClass = 'pass'; scoreText = 'PASS'; }
-        if (isFail) { scoreClass = 'fail'; scoreText = 'FAIL'; }
-
-        const cName = candidate.candidate_name || candidate.candidateName || candidate.name || 'Unknown';
-        const cEmail = candidate.candidate_email || candidate.candidateEmail || candidate.email || 'N/A';
-        const cScoreRaw = candidate.overall_score ?? candidate.overallScore ?? null;
-        const scoreDisplay = cScoreRaw !== null ? `${Number(cScoreRaw).toFixed(0)}%` : 'N/A';
-
-        htmlContent += `
-        <div class="page-break">
-            <div class="header">
-                <h1>${assessmentTitle} — Candidate Report</h1>
-            </div>
-            
-            <div class="candidate-info">
-                <div class="info-block">
-                    <strong>Candidate Name</strong>
-                    <span>${cName}</span>
+    if (responses.length === 0) {
+        htmlContent += `<p style="color: #64748b;">No detailed responses available for this candidate.</p>`;
+    } else {
+        responses.forEach((resp, i) => {
+            htmlContent += `
+            <div class="question-item">
+                <div class="q-header">
+                    <span class="q-title">Q${i + 1}. ${resp.domain || ''} | ${resp.difficulty || ''}</span>
+                    <span class="q-meta">Score: ${resp.manualScore !== null ? resp.manualScore : (resp.selectedAnswer === resp.correctAnswer ? (resp.max_score || 1) : 0)} / ${resp.max_score || 1}</span>
                 </div>
-                <div class="info-block">
-                    <strong>Email Address</strong>
-                    <span>${cEmail}</span>
-                </div>
-                <div class="info-block">
-                    <strong>Overall Score</strong>
-                    <span>${scoreDisplay}</span>
-                </div>
-                <div class="info-block">
-                    <div class="score-badge ${scoreClass}">
-                        ${scoreText}
-                    </div>
-                </div>
-            </div>
+                <div class="q-text">${resp.questionText || ''}</div>
+            `;
 
-            <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Detailed Responses</h3>
-        `;
-
-        const cid = candidate.candidate_id || candidate.candidateId || candidate.id;
-        const responses = groupedResponses[cid] || [];
-        
-        if (responses.length === 0) {
-            htmlContent += `<p style="color: #64748b;">No detailed responses available for this candidate.</p>`;
-        } else {
-            responses.forEach((resp, i) => {
+            if (resp.questionType === 'SUBJECTIVE') {
                 htmlContent += `
-                <div class="question-item">
-                    <div class="q-header">
-                        <span class="q-title">Q${i + 1}. ${resp.domain || ''} | ${resp.difficulty || ''}</span>
-                        <span class="q-meta">Score: ${resp.manualScore !== null ? resp.manualScore : (resp.selectedAnswer === resp.correctAnswer ? (resp.max_score || 1) : 0)} / ${resp.max_score || 1}</span>
-                    </div>
-                    <div class="q-text">${resp.questionText || ''}</div>
+                <div class="subjective-answer">
+                    ${resp.textAnswer || '<i>No answer provided</i>'}
+                </div>
                 `;
-
-                if (resp.questionType === 'SUBJECTIVE') {
-                    htmlContent += `
-                    <div class="subjective-answer">
-                        ${resp.textAnswer || '<i>No answer provided</i>'}
-                    </div>
-                    `;
-                } else {
-                    htmlContent += `<ul class="options">`;
-                    let options = [];
-                    try {
-                        options = typeof resp.options === 'string' ? JSON.parse(resp.options) : resp.options;
-                    } catch(e) {}
-                    
-                    if (Array.isArray(options)) {
-                        options.forEach((opt, optIndex) => {
-                            if(!opt) return;
-                            let optClass = 'option';
-                            let icon = '';
-                            if (optIndex === resp.correctAnswer) {
-                                optClass += ' correct';
-                                icon = '✓ Correct';
-                            } else if (optIndex === resp.selectedAnswer && optIndex !== resp.correctAnswer) {
-                                optClass += ' incorrect-selected';
-                                icon = '✗ Your Answer';
-                            }
-                            htmlContent += `<li class="${optClass}">${opt} <span>${icon}</span></li>`;
-                        });
-                    }
-                    htmlContent += `</ul>`;
-                }
+            } else {
+                htmlContent += `<ul class="options">`;
+                let options = [];
+                try {
+                    options = typeof resp.options === 'string' ? JSON.parse(resp.options) : resp.options;
+                } catch(e) {}
                 
-                htmlContent += `</div>`;
-            });
-        }
-
-        htmlContent += `</div>`;
-    });
+                if (Array.isArray(options)) {
+                    options.forEach((opt, optIndex) => {
+                        if(!opt) return;
+                        let optClass = 'option';
+                        let icon = '';
+                        if (optIndex === resp.correctAnswer) {
+                            optClass += ' correct';
+                            icon = '✓ Correct';
+                        } else if (optIndex === resp.selectedAnswer && optIndex !== resp.correctAnswer) {
+                            optClass += ' incorrect-selected';
+                            icon = '✗ Your Answer';
+                        }
+                        htmlContent += `<li class="${optClass}">${opt} <span>${icon}</span></li>`;
+                    });
+                }
+                htmlContent += `</ul>`;
+            }
+            
+            htmlContent += `</div>`;
+        });
+    }
 
     htmlContent += `
     </body>
     </html>
     `;
 
-    const browser = await puppeteer.launch({
-        headless: 'new',
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    return htmlContent;
+};
+
+export const streamZipBulkReport = async (assessmentTitle, candidates, groupedResponses, res) => {
+    // Set up the archiver to stream zip directly to the response
+    const archive = new ZipArchive({
+        zlib: { level: 9 } // maximum compression
     });
+
+    archive.on('error', function(err) {
+        throw err;
+    });
+
+    // Pipe the archive output directly to the Express response
+    archive.pipe(res);
+
+    const browserOpts = {
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    };
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        browserOpts.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+    const browser = await puppeteer.launch(browserOpts);
 
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'load' });
-    
-    // NOTE: This uses Uint8Array for latest puppeteer version 20+, to buffer it we convert it properly
-    const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-            top: '20mm',
-            bottom: '20mm',
-            left: '15mm',
-            right: '15mm'
+
+    for (const candidate of candidates) {
+        try {
+            const cid = candidate.candidate_id || candidate.candidateId || candidate.id;
+            const responses = groupedResponses[cid] || [];
+            
+            const htmlContent = buildSingleCandidateHtml(assessmentTitle, candidate, responses);
+            
+            await page.setContent(htmlContent, { waitUntil: 'load' });
+            
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: {
+                    top: '20mm',
+                    bottom: '20mm',
+                    left: '15mm',
+                    right: '15mm'
+                }
+            });
+
+            // Fallback for names
+            const cName = candidate.candidate_name || candidate.candidateName || candidate.name || 'Unknown';
+            // Clean name for safe filesystem usage
+            const cleanName = cName.replace(/[^a-zA-Z0-9]/g, '_');
+            const fileName = `${cleanName}_${cid}.pdf`;
+
+            archive.append(Buffer.from(pdfBuffer), { name: fileName });
+        } catch (error) {
+            console.error(`Error generating PDF for candidate ID ${candidate.id}:`, error);
+            // We log the error but DO NOT crash the loop. We want the rest of the candidates to succeed.
         }
-    });
+    }
 
     await browser.close();
-    return Buffer.from(pdfBuffer);
+    
+    // Finalize the archive (this tells the stream that we are done appending files)
+    await archive.finalize();
 };

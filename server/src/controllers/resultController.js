@@ -3,7 +3,7 @@ import * as Assessment from '../models/Assessment.js';
 import * as Response from '../models/Response.js';
 import { query } from '../config/database.js';
 import { processAllExpiredTests } from './testController.js';
-import { generateBulkReport } from '../services/pdfService.js';
+import { streamZipBulkReport } from '../services/pdfService.js';
 
 export const getResults = async (req, res, next) => {
     try {
@@ -363,15 +363,12 @@ export const exportBulkPDF = async (req, res, next) => {
             });
         });
 
-        // 4. Generate PDF
-        const pdfBuffer = await generateBulkReport(assessmentTitle, completedCandidates, grouped);
-
-        // 5. Send PDF
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${assessmentTitle.replace(/\s+/g, '_')}_All_Reports.pdf"`);
-        res.setHeader('Content-Length', pdfBuffer.length);
+        // 4. Set Headers and Stream ZIP
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${assessmentTitle.replace(/\s+/g, '_')}_All_Reports.zip"`);
         
-        return res.send(pdfBuffer);
+        await streamZipBulkReport(assessmentTitle, completedCandidates, grouped, res);
+        
     } catch (error) {
         console.error('PDF Generation Error:', error);
         next(error);
