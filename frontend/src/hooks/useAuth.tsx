@@ -50,13 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (scalozToken) {
-      console.debug('[SSO] scaloz_token found in URL, storing to sessionStorage...');
-      sessionStorage.setItem('auth_token', scalozToken);
+      console.debug('[SSO] scaloz_token found in URL, storing to localStorage...');
+      localStorage.setItem('auth_token', scalozToken);
 
       // Verify the write actually succeeded (Safari in private mode & some WebViews can silently fail)
-      const stored = sessionStorage.getItem('auth_token');
+      const stored = localStorage.getItem('auth_token');
       if (!stored) {
-        console.error('[SSO] sessionStorage write FAILED — browser may be blocking storage (private mode / WebView restriction)');
+        console.error('[SSO] localStorage write FAILED — browser may be blocking storage (private mode / WebView restriction)');
       } else {
         console.debug('[SSO] auth_token stored successfully');
       }
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Check for existing token and fetch user
-    const token = sessionStorage.getItem('auth_token');
+    const token = localStorage.getItem('auth_token');
     if (token) {
       console.debug('[SSO] auth_token present, fetching user profile...');
       fetchUser();
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch (error: any) {
       console.error('[SSO] fetchUser failed:', error);
-      sessionStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_token');
       setUser(null);
 
       // We removed the auto-redirect for 401/403 to prevent infinite redirect loops.
@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authAPI.login(email, password);
 
       // Store token
-      sessionStorage.setItem('auth_token', response.data.token);
+      localStorage.setItem('auth_token', response.data.token);
 
       // Set user
       setUser({
@@ -142,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   const signOut = async () => {
-    sessionStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_token');
     setUser(null);
 
     // Redirect back to Scaloz Workspace

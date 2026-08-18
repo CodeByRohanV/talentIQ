@@ -65,7 +65,7 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
     (config) => {
-        const token = sessionStorage.getItem('auth_token');
+        const token = localStorage.getItem('auth_token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -86,7 +86,7 @@ api.interceptors.response.use(
 
             // Handle 401 Unauthorized
             if (error.response.status === 401) {
-                sessionStorage.removeItem('auth_token');
+                localStorage.removeItem('auth_token');
                 const isInitialSSOLoad = window.location.pathname === '/' || window.location.pathname === '/Home';
                 // Only auto-redirect back if this wasn't during initial SSO authentication attempt
                 if (!isInitialSSOLoad) {

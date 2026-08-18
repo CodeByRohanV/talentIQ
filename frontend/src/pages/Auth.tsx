@@ -19,7 +19,7 @@ export default function Auth() {
     localStorage.setItem('theme', 'light');
 
     // If auth is still loading or we already have a token, stay on this page until auth resolves.
-    const token = sessionStorage.getItem('auth_token');
+    const token = localStorage.getItem('auth_token');
     if (loading || token) {
       return;
     }

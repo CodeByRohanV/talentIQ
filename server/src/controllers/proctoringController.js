@@ -85,9 +85,7 @@ export const getReport = async (req, res) => {
     }
 };
 
-import { GetObjectCommand } from '@aws-sdk/client-s3';
-import { s3Client } from '../utils/s3.js';
-import { pipeline } from 'stream';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
 export const getMedia = async (req, res) => {
     try {
@@ -96,7 +94,7 @@ export const getMedia = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid media URL' });
         }
         
-
+        const s3Client = new S3Client({ region: process.env.AWS_REGION });
         
         const urlObj = new URL(url);
         // Ensure it's accessing the configured bucket
@@ -117,12 +115,8 @@ export const getMedia = async (req, res) => {
         // Prevent CORS issues by adding Access-Control-Allow-Origin
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        // stream it to the client safely
-        pipeline(response.Body, res, (err) => {
-            if (err) {
-                console.error('S3 Stream Pipeline Error:', err);
-            }
-        });
+        // stream it to the client
+        response.Body.pipe(res);
     } catch (error) {
         console.error('Error fetching media from S3:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch media' });
