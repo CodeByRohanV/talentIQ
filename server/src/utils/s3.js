@@ -1,7 +1,7 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 // The SDK automatically uses IAM role credentials when running on EC2
-const s3Client = new S3Client({
+export const s3Client = new S3Client({
     region: process.env.AWS_REGION || 'ap-south-2'
 });
 
